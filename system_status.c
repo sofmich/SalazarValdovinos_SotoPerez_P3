@@ -12,7 +12,6 @@
 #include "bits.h"
 #include "system_status.h"
 #include "NVIC.h"
-#include "MCP7940.h"
 #include "GPIO.h"
 #include "I2C.h"
 
