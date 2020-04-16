@@ -59,7 +59,6 @@ typedef enum {RECEIVER, TRANSMITTER} tx_or_rx_t;
   	 \param[in] systemClock Frequency of the system.
   	 \param[in] baud_rate is ans structure that contains the fiels mult and icr.
   	 \return void
-
   */
 void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud_rate);
 
@@ -71,11 +70,9 @@ void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud
   	 	 It selects between master or slave mode by modifying bit MST.
   	 	 This function is called inside I2C_start and I2C_stop
   	 \param[in] master_or_slave If == 1 master mode, if == 0 slave mode.
-
   	 \return void
-
   */
- void I2C_mst_or_slv_mode(uint8_t mst_or_slv);
+ void I2C_mst_or_slv_mode(i2c_channel_t channel, uint8_t mst_or_slv);
  /********************************************************************************************/
  /********************************************************************************************/
  /********************************************************************************************/
@@ -86,9 +83,8 @@ void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud
   	 	 This function is called inside I2C_start and I2C_stop
   	 \param[in] tx_or_rx If == 1 transmitter mode, if == 0 slave mode.
   	 \return void
-
   */
- void I2C_tx_rx_mode(uint8_t tx_or_rx);
+ void I2C_tx_rx_mode(i2c_channel_t channel, uint8_t tx_or_rx);
  /********************************************************************************************/
  /********************************************************************************************/
  /********************************************************************************************/
@@ -97,9 +93,8 @@ void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud
   	 	 It generates the Not ACKnowledge that is needed when the master reads data.
   	 	 It modifies  TXAK bit
   	 \return void
-
   */
- void I2C_nack(void);
+ void I2C_nack(i2c_channel_t channel);
  /********************************************************************************************/
  /********************************************************************************************/
  /********************************************************************************************/
@@ -108,9 +103,8 @@ void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud
   	 	 It generates a repeated start that is needed when master reads data.
   	 	 Ii modifies RSTA bit.
   	 \return void
-
   */
- void I2C_repeted_start(void);
+ void I2C_repeted_start(i2c_channel_t channel);
  /********************************************************************************************/
  /********************************************************************************************/
  /********************************************************************************************/
@@ -120,9 +114,8 @@ void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud
   	 	 write a value into the buffer you need to use this sentence I2C0_D = data. Avoid to use
   	 	 masks like this I2C0_D |= data.
   	 \return void
-
   */
-void I2C_write_byte(uint8_t data);
+void I2C_write_byte(i2c_channel_t channel, uint8_t data);
 /********************************************************************************************/
 /********************************************************************************************/
 /********************************************************************************************/
@@ -130,9 +123,8 @@ void I2C_write_byte(uint8_t data);
  	 \brief
  	 	 It reads data from the receiving buffer.
  	 \return void
-
  */
-uint8_t  I2C_read_byte(void);
+uint8_t  I2C_read_byte(i2c_channel_t channel);
 /********************************************************************************************/
 /********************************************************************************************/
 /********************************************************************************************/
@@ -143,13 +135,11 @@ uint8_t  I2C_read_byte(void);
 			• One byte transfer, including ACK/NACK bit, completes if FACK is 0. An ACK or NACK is sent on the
 			  bus by writing 0 or 1 to TXAK after this bit is set in receive mode.
 			• One byte transfer, excluding ACK/NACK bit, completes if FACK is 1.
-
 		This function should be implemented as a blocking function by using  while((I2C0->S & 0x02)== 0);, the bit number 2 of this register must be set.
 		The blocking implementation of this function only to reduce the complexity of the lab. However, blocking implementation must be avoided.
  	 \return Void.
-
  */
-void I2C_wait(void);
+void I2C_wait(i2c_channel_t channel);
 /********************************************************************************************/
 /********************************************************************************************/
 /********************************************************************************************/
@@ -158,9 +148,8 @@ void I2C_wait(void);
  	 	 Indicates if the acknowledge was received.
  	 	 It checks RXAK bit
  	 \return This function returns a 0 logic if the acknowledge was received and returns 1 logic if the acknowledge was not received.
-
  */
-uint8_t I2C_get_ack(void);
+uint8_t I2C_get_ack(i2c_channel_t channel);
 /********************************************************************************************/
 /********************************************************************************************/
 /********************************************************************************************/
@@ -170,9 +159,8 @@ uint8_t I2C_get_ack(void);
  	 	 on the bus and master mode is selected. Also, inside the function the I2C is
  	 	 change to transmitter mode.
  	 \return void
-
  */
-void I2C_start(void);
+void I2C_start(i2c_channel_t channel);
 /********************************************************************************************/
 /********************************************************************************************/
 /********************************************************************************************/
@@ -182,8 +170,7 @@ void I2C_start(void);
  	 	 and the mode of operation changes from master to slave. Also, inside the function the I2C is
  	 	 change to receiver mode.
  	 \return void
-
  */
-void I2C_stop(void);
+void I2C_stop(i2c_channel_t channel);
 
 #endif /* I2C_H_ */

@@ -30,70 +30,70 @@ void Init_MCP7940(i2c_channel_t channel,  i2c_baud_rate_t baudrate){
 }
 
 void RTCenable(void){
-	I2C_tx_rx_mode(TRANSMITTER);
-	I2C_start();
+	I2C_tx_rx_mode(I2C_0,TRANSMITTER);
+	I2C_start(I2C_0);
 
-	I2C_write_byte(AD_WRITE);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,AD_WRITE);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(CONTROL);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,CONTROL);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(MFT);
-	I2C_wait();
-	I2C_get_ack();
-	I2C_stop();
+	I2C_write_byte(I2C_0,MFT);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
+	I2C_stop(I2C_0);
 }
 
 void RTC_write_byte(uint8_t address, uint8_t data)
 {
-	I2C_tx_rx_mode(TRANSMITTER);
-	I2C_start();
+	I2C_tx_rx_mode(I2C_0,TRANSMITTER);
+	I2C_start(I2C_0);
 
-	I2C_write_byte(AD_WRITE);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,AD_WRITE);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(address);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,address);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(data);
-	I2C_wait();
-	I2C_get_ack();
-	I2C_stop();
+	I2C_write_byte(I2C_0,data);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
+	I2C_stop(I2C_0);
 
 }
 uint8_t RTC_read_byte(uint8_t address)
 {
 	uint8_t data;
-	I2C_tx_rx_mode(TRANSMITTER);
-	I2C_start();
+	I2C_tx_rx_mode(I2C_0,TRANSMITTER);
+	I2C_start(I2C_0);
 
-	I2C_write_byte(AD_WRITE);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,AD_WRITE);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(address);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,address);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_repeted_start();
-	I2C_write_byte(AD_READ);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_repeted_start(I2C_0);
+	I2C_write_byte(I2C_0,AD_READ);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_tx_rx_mode(RECEIVER);
+	I2C_tx_rx_mode(I2C_0,RECEIVER);
 
-	I2C_nack();
-	data = I2C_read_byte();
-	I2C_wait();
-	I2C_nack();
+	I2C_nack(I2C_0);
+	data = I2C_read_byte(I2C_0);
+	I2C_wait(I2C_0);
+	I2C_nack(I2C_0);
 
-	I2C_stop();
-	data = I2C_read_byte();
+	I2C_stop(I2C_0);
+	data = I2C_read_byte(I2C_0);
 
 	return data;
 }
