@@ -15,6 +15,7 @@
 #include "MCP7940.h"
 #include "GPIO.h"
 #include "I2C.h"
+#include "LED_MATRIX.h"
 
 /** Global mode s used to manipulate from infinite loop*/
 SYSTEM_MODE g_status = MAIN_MENU;
@@ -222,7 +223,7 @@ void read_time_menu(uint8_t data_from_user)
 			/* Show confirmation message*/
 		else if('2' == data_from_user && FALSE == g_flag_YES)
 		{
-			UART_put_char (UART_0, data_from_user );
+			UART_put_char(UART_0, data_from_user );
 			UART_put_string(UART_0,"\033[13;10H");
 			UART_put_string(UART_0, "Deseas mostrar la hora en la matriz de leds? [SI][NO]");
 			/** VT100 command for positioning the cursor in x and y position*/
@@ -236,7 +237,7 @@ void read_time_menu(uint8_t data_from_user)
 		g_INPUTS[g_counter_inputs] = data_from_user;
 		g_counter_inputs++;
 		/** Once yes or not is finished, check if ENTER was pressed*/
-		if(INPUTS_YES == g_counter_inputs)
+		if(INPUTS_YES >= g_counter_inputs)
 		{
 			if(ENTER_ASCII == data_from_user)
 			{
@@ -244,6 +245,7 @@ void read_time_menu(uint8_t data_from_user)
 				{
 					/* Show time on MATRIX from here*/
 					printf("Show time on matrix from here\n");
+					GPIO_callback_init(GPIO_D, MATRIX_show_time);
 				}
 				else
 				{

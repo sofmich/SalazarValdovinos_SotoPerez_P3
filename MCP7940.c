@@ -247,4 +247,46 @@ void UpdateTime(config_rtc_t date_or_time, uint8_t time[])
 
 }
 
+time_format_t GetGlobalTime(void)
+{
+	/** Structure to save all elements of time format*/
+	time_format_t actual_time;
+	/** Get hours and print them on UART*/
+	uint8_t temp_time = RTC_read_byte(HOUR);
+	delay(DELAY);
+	printf("==============TEMP TIME HRS %x \n", temp_time);
+	if(temp_time < 12)
+	{
+		actual_time.am_pm = AM;
+	}
+	else
+	{
+		actual_time.am_pm = PM;
+	}
+	/** Get hours tens*/
+	actual_time.tens_hours = (temp_time & TENS_HOURS) >> CENTS_SHIFTER;
+	/** Get hours units*/
+	actual_time.units_hours = temp_time & UNITS_MASK;
+	/** Get minutes and print them on UART*/
+	temp_time = RTC_read_byte(MIN);
+	delay(DELAY);
+	/** Get minutes teens*/
+	actual_time.tens_minutes = (temp_time & TENS_MINS) >>  CENTS_SHIFTER;
+	/** Get minutes units*/
+	actual_time.units_minutes = temp_time & UNITS_MASK;
+	/** Get seconds and print them on UART*/
+	temp_time = RTC_read_byte(SEC);
+	delay(DELAY);
+	/** Get seconds teens*/
+	actual_time.tens_seconds = (temp_time & TENS_SEC) >> CENTS_SHIFTER;
+	/** Get seconds units*/
+	actual_time.units_seconds = temp_time & UNITS_MASK;
 
+	printf("Actual time \n %d%d : %d%d: %d%d AM O PM %d\n",
+			actual_time.tens_hours, actual_time.units_hours,
+			actual_time.tens_minutes, actual_time.units_minutes,
+			actual_time.tens_seconds, actual_time.units_seconds,
+			actual_time.am_pm);
+
+	return actual_time;
+}

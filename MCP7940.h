@@ -149,7 +149,13 @@ void UpdateDisplayTime(void);
  	 \return void
  */
 void UpdateTime(config_rtc_t date_or_time, uint8_t time[]);
-
+/********************************************************************************************/
+/*!
+ 	 \brief	Get the actual value of time
+ 	 \param[in]  void
+ 	 \return void
+ */
+time_format_t GetGlobalTime(void);
 
 
 
