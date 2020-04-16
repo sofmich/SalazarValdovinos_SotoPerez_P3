@@ -15,6 +15,7 @@
 #include "LED_MATRIX.h"
 
 
+
 #define DEBUG
 
 #ifdef DEBUG
@@ -28,13 +29,19 @@ int main(void)
 {
 	/**Init all system*/
 	uint8_t status = init_system();
-	system_set_status(status);
 	MATRIX_init();
+	uint8_t PRINT[] = {0x00, 0x40, 0x20, 0x90, 0x10, 0x10, 0x10,  0xA0, 0x40, FALSE};
+	MATRIX_show(PRINT);
 	for(;;) {
-		if(TRUE == UART_get_interrupt_flag(UART_0))
-		{
-			MATRIX_test();
-		}
+//		if(TRUE == UART_get_interrupt_flag(UART_0))
+//		{
+//			UART_clear_interrupt_flag(UART_0);
+//			/** Save the key the user has pressed*/
+//			uint8_t data_from_user = UART_get_mailbox(UART_0);
+//			//system_control(data_from_user);
+//
+//
+//		}
 	}
 
 	return 0;
