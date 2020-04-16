@@ -282,7 +282,7 @@ void system_control(uint8_t data_from_user)
 			break;
 	case(READ_DATE):
 			/** Function to read date from here*/
-			UpdateDisplayDate();
+		UpdateDisplayDate();
 			break;
 	case(WRITE_MEMORY):
 			/** Functionality to write memory */

@@ -42,8 +42,9 @@ typedef enum uint8_t{
 void main_menu(void);
 
 void config_date_time(uint8_t data_from_user);
-void read_hour(void);
+void read_time_menu(void);
 void read_date(void);
+
 void start_chat(uint8_t data_from_user);
 
 
