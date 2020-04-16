@@ -24,83 +24,76 @@ const i2c_baud_rate_t baud_rate = {2, 1 };
 /** Pointer used to make callback point to direction zero and not execute any funciton*/
 void (*clear_callback)(void) = FALSE;
 /** Save data that will be transmitted through I2C*/
-uint8_t g_set_hour_digit[HOUR_DIGITS] = {FALSE};
+uint8_t g_set_rtc_digit[HOUR_DIGITS] = {FALSE};
 /** Counter of times a digit is entered*/
-uint8_t g_counter_set_hour  = FALSE;
+uint8_t g_counter_inputs  = FALSE;
+/** Variable to control the total inputs of set new hour/date*/
+uint8_t g_full_set_flag = FALSE;
+/** Flag to control wheter reading hour is on terminal o matrix*/
+uint8_t g_flag_YES;
+/** Array to control number of inputs*/
+uint8_t g_INPUTS[INPUTS_YES] = {FALSE};
+
 
 void main_menu(void)
 {
 
 	/** Reinitialize all variables and data*/
 	GPIO_callback_init(GPIO_D, clear_callback);
-	*g_set_hour_digit = FALSE;
-	g_counter_set_hour  = FALSE;
+	g_counter_inputs = FALSE;
 	display_main_menu();
 
 }
-void read_hour(void)
-{
-	/*VT100 command for clearing the screen*/
-	UART_put_string(UART_0,"\033[2J");
-	/** VT100 command for text in  bright, black and background in cyan*/
-	UART_put_string(UART_0,"\033[1;30;47m");
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[10;10H");
-	UART_put_string(UART_0, "La hora actual es\r");
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[11;10H");
-	GPIO_callback_init(GPIO_D, UpdateDisplayTime);
-}
 
-void display_config_hour(void)
-{
 
-	/*VT100 command for clearing the screen*/
-	UART_put_string(UART_0,"\033[2J");
-	/** VT100 command for text in  bright, black and background in cyan*/
-	UART_put_string(UART_0,"\033[1;30;47m");
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[10;10H");
-	UART_put_string(UART_0, "Introducir hora actual con el siguiente formato\r");
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[11;10H");
-	UART_put_string(UART_0, "HH:MM:SS      24HRS\r");
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[12;10H");
-}
-void config_hour(uint8_t data_from_user)
+void config_date_time(uint8_t data_from_user)
 {
-
-	if( g_counter_set_hour < HOUR_DIGITS)
+	if( g_counter_inputs < HOUR_DIGITS)
 	{
 		if(data_from_user >= ZERO_ASCII && data_from_user <= NINE_ASCII)
 		{
-			g_set_hour_digit[g_counter_set_hour] = data_from_user;
+			g_set_rtc_digit[g_counter_inputs] = data_from_user;
 			/**Sends to the PCA the received data in the mailbox*/
-			UART_put_char (UART_0, g_set_hour_digit[g_counter_set_hour] );
+			UART_put_char (UART_0, g_set_rtc_digit[g_counter_inputs] );
 			/**Convert ASCII to decimal*/
-			g_set_hour_digit[g_counter_set_hour]  = g_set_hour_digit[g_counter_set_hour]  - ASCII_CONSTANT;
-			g_counter_set_hour ++ ;
-			if(FIRST_DOTS == g_counter_set_hour || SECOND_DOTS == g_counter_set_hour)
+			g_set_rtc_digit[g_counter_inputs]  = g_set_rtc_digit[g_counter_inputs]  - ASCII_CONSTANT;
+			g_counter_inputs ++ ;
+			if(FIRST_DOTS == g_counter_inputs || SECOND_DOTS == g_counter_inputs)
 			{
-				uint8_t dots = DOTS_ASCII;
-				UART_put_char (UART_0, dots);
+				if(SET_TIME == g_status)
+				{	/*If the input corresponds to a time format dots divide the input*/
+					UART_put_char (UART_0, ':');
+				}
+				else
+				{  /*If the input corresponds to a date, a slash divides the input*/
+					UART_put_char (UART_0, '/');
+				}
+
 			}
 		}
 	}
-	/**Once all hour digits are completed the hour can be set*/
+	/**Once all set digits are completed the hour can be set*/
 	else if(ENTER_ASCII == data_from_user)
 	{
-		UpdateTime(g_set_hour_digit);
-		display_main_menu();
-		g_status = MAIN_MENU;
+		/** Updates time acording if it is an update of hours or date*/
+		UpdateTime(g_status, g_set_rtc_digit);
+		/** VT100 command for positioning the cursor in x and y position*/
+		UART_put_string(UART_0,"\033[13;10H");
+		if(SET_TIME == g_status)
+		UART_put_string(UART_0,"La hora ha sido configurada");
+		else
+		UART_put_string(UART_0,"La fecha ha sido configurada");
+		g_full_set_flag = TRUE;
 	}
-}
-
-
-uint8_t get_status(void)
-{
-	return g_status;
+	/** If doing this ESC key is pressed then it should go out */
+	else if(ESC_ASCII == data_from_user && TRUE == g_full_set_flag)
+	{
+		*g_set_rtc_digit = FALSE;
+		g_counter_inputs  = FALSE;
+		g_full_set_flag = FALSE;
+		g_status = MAIN_MENU;
+		main_menu();
+	}
 }
 
 uint8_t init_system(void)
@@ -138,7 +131,8 @@ uint8_t init_system(void)
 	/**Enables interrupts*/
 	NVIC_global_enable_interrupts;
 
-	return MAIN_MENU;
+	g_status = MAIN_MENU;
+	return g_status;
 
 }
 
@@ -161,7 +155,146 @@ void display_main_menu(void)
 	UART_put_string(UART_0,"\033[12;10H");
 }
 
-void system_set_status(SYSTEM_MODE status)
+void display_default(void)
 {
-	g_status = status;
+
+	/*VT100 command for clearing the screen*/
+	UART_put_string(UART_0,"\033[2J");
+	/** VT100 command for text in  bright, black and background in cyan*/
+	UART_put_string(UART_0,"\033[1;30;47m");
+	/** VT100 command for positioning the cursor in x and y position*/
+	UART_put_string(UART_0,"\033[10;10H");
+	switch(g_status)
+	{
+	case(SET_TIME):
+		UART_put_string(UART_0, "Introducir hora actual con el siguiente formato\r");
+		/** VT100 command for positioning the cursor in x and y position*/
+		UART_put_string(UART_0,"\033[11;10H");
+		UART_put_string(UART_0, "HH:MM:SS      24HRS\r");
+			break;
+	case(SET_DATE):
+		UART_put_string(UART_0, "Introducir fecha con el siguiente formato\r");
+		/** VT100 command for positioning the cursor in x and y position*/
+		UART_put_string(UART_0,"\033[11;10H");
+		UART_put_string(UART_0, "dd/mm/aa\r");
+			break;
+	case(READ_TIME):
+	UART_put_string(UART_0, "Elige en que te gustaria ver la hora");
+	/** VT100 command for positioning the cursor in x and y position*/
+	UART_put_string(UART_0,"\033[11;10H");
+	UART_put_string(UART_0, "1) Terminal");
+	/** VT100 command for positioning the cursor in x and y position*/
+	UART_put_string(UART_0,"\033[11;10H");
+	UART_put_string(UART_0, "2) Consola");
+	break;
+	case(READ_DATE):
+	UART_put_string(UART_0, "La fecha actual es");
+	case(WRITE_MEMORY):
+		UART_put_string(UART_0, "Direccion de escritura\r");
+			break;
+	case(READ_MEMORY):
+		UART_put_string(UART_0, "Direccion de lectura\r");
+	case(MATRIX_MESSAGE):
+		UART_put_string(UART_0, "Mensajes almacenados: \r");
+	}
+	/** VT100 command for positioning the cursor in x and y position*/
+	UART_put_string(UART_0,"\033[12;10H");
+}
+
+
+void read_time_menu(uint8_t data_from_user)
+{
+	/**If the last pressed key is ESC, go back to main menu*/
+	/** Select between terminal o matrix*/
+	if( FALSE == g_flag_YES)
+	{
+		if(ESC_ASCII == data_from_user)
+		{
+			g_status = MAIN_MENU;
+			main_menu();
+		}
+		/* See the time value on terminal*/
+		if('1' == data_from_user)
+		{
+			GPIO_callback_init(GPIO_D, UpdateDisplayTime);
+			UART_put_char (UART_0, data_from_user );
+		}
+			/* Show confirmation message*/
+		else if('2' == data_from_user && FALSE == g_flag_YES)
+		{
+			UART_put_char (UART_0, data_from_user );
+			UART_put_string(UART_0,"\033[13;10H");
+			UART_put_string(UART_0, "Deseas mostrar la hora en la matriz de leds? [SI][NO]");
+			/** VT100 command for positioning the cursor in x and y position*/
+			UART_put_string(UART_0,"\033[14;10H");
+			g_flag_YES = TRUE;
+		}
+	}
+	else
+	{
+		UART_put_char (UART_0, data_from_user );
+		g_INPUTS[g_counter_inputs] = data_from_user;
+		g_counter_inputs++;
+		/** Once yes or not is finished, check if ENTER was pressed*/
+		if(INPUTS_YES == g_counter_inputs)
+		{
+			if(ENTER_ASCII == data_from_user)
+			{
+				if(g_INPUTS[0] == 'S' && g_INPUTS[1] == 'I')
+				{
+					/* Show time on MATRIX from here*/
+					printf("Show time on matrix from here\n");
+				}
+				else
+				{
+					/** VT100 command for positioning the cursor in x and y position*/
+					UART_put_string(UART_0,"\033[15;10H");
+					UART_put_string(UART_0, "Presiona ESC para volver [ESC]");
+				}
+
+			}
+			else if(ESC_ASCII == data_from_user )
+			{
+				g_status = MAIN_MENU;
+				main_menu();
+			}
+		}
+	}
+}
+
+void system_control(uint8_t data_from_user)
+{
+	/** Check if the data introduced goes to any of the menu options*/
+	switch(g_status)
+	{
+	case(MAIN_MENU):
+			g_status = data_from_user;
+	display_default();
+	break;
+	case(SET_TIME):
+		config_date_time(data_from_user);
+			break;
+	case(SET_DATE):
+		config_date_time(data_from_user);
+			break;
+	case(READ_TIME):
+		read_time_menu(data_from_user);
+			break;
+	case(READ_DATE):
+			/** Function to read date from here*/
+			UpdateDisplayDate();
+			break;
+	case(WRITE_MEMORY):
+			/** Functionality to write memory */
+			break;
+	case(READ_MEMORY):
+			/** Functionality to read memory*/
+			break;
+	case(CHAT):
+			/** Functionality of chat*/
+			break;
+	default:
+		break;
+	}
+
 }

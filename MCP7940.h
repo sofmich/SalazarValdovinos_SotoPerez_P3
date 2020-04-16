@@ -32,8 +32,14 @@
 #define MIN 		0x01
 /** Address of hours on RTC*/
 #define HOUR 		0x02
+/** Adress of days on RTC*/
+#define DAYS_ADDRESS 	0x04
+/** Adress of months on RTC*/
+#define MONTHS_ADDRESS 	0x05
+/** Adress of years on RTC*/
+#define YEARS_ADDRESS 	0x06
 /** Mask to get tens of hours*/
-#define TENS_HOURS		30U
+#define TENS_HOURS		0x30U
 /** Mask to get tens of minutes*/
 #define TENS_MINS		0x070U
 /** Mask to get tens of seconds*/
@@ -42,6 +48,12 @@
 #define CENTS_SHIFTER	4U
 /** Mask to get units of byte */
 #define UNITS_MASK		0x0FU
+/** Mask to get cents of years*/
+#define YEARS_CENTS_MASK	0xF0
+/** Mask to get cents of months*/
+#define MONTHS_CENTS_MASK	0x10
+/** Mask to get cents of days*/
+#define DAYS_CENTS_MASK		0x30
 /** Mask to get wheter is AM or PM*/
 #define AM_PM_MASK		0x020
 
@@ -51,6 +63,8 @@
 #define ASCII_DOTS	58U
 /** select whether the hour is half day or past half day*/
 typedef enum { AM, PM} am_pm_t;
+/** Data type to recognize if a date or time is being configured*/
+typedef uint8_t config_rtc_t ;
 
 /** struct to save tens and units of elements on hour format*/
 typedef struct
@@ -65,6 +79,17 @@ typedef struct
 
 }time_format_t;
 
+/** struct to save tens and units of elements on date format*/
+typedef struct
+{
+	uint8_t tens_years;
+	uint8_t units_years;
+	uint8_t	tens_months;
+	uint8_t units_months;
+	uint8_t tens_days;
+	uint8_t units_days;
+}date_format_t;
+
 /** Constants indicate tens and units of elements on hour format*/
 typedef enum{
 	HOURS_TENS,
@@ -74,6 +99,18 @@ typedef enum{
 	SECONDS_TENS,
 	SECONDS_UNITS
 }time_elements_t;
+
+typedef enum{
+	NONE,
+	TIME,
+	DATE,
+	HOURS,
+	MINUTES,
+	SECONDS,
+	DAY,
+	MONTH,
+	YEAR
+}rtc_elements_t;
 
 /********************************************************************************************/
 /*!
@@ -86,54 +123,18 @@ void Init_MCP7940(i2c_channel_t channel, i2c_baud_rate_t baudrate);
 
 /********************************************************************************************/
 /*!
- 	 \brief	Set a new second value
- 	 \param[in]  seconds vlaue
+ 	 \brief	Write a new value on RTC
+ 	 \param[in]  byte to write
  	 \return void
  */
-void SetSecond(uint8_t sec);
+void RTC_write_byte(uint8_t address, uint8_t data);
 /********************************************************************************************/
 /*!
- 	 \brief	Set a new minute value
- 	 \param[in]  minutes value
- 	 \return void
+ 	 \brief	READ a byte on RTC
+ 	 \param[in]  address to read
+ 	 \return data
  */
-void SetMinute(uint8_t min);
-/********************************************************************************************/
-/*!
- 	 \brief	Set a new hour value
- 	 \param[in]  hours value
- 	 \return void
- */
-void SetHour(uint8_t hour);
-/********************************************************************************************/
-/*!
- 	 \brief	Allows RTC to start generating a 1HZ signal and start working communicating
- 	 	 	with I2C from kinetis.
- 	 \param[in]  void
- 	 \return void
- */
-void RTCenable(void);
-/********************************************************************************************/
-/*!
- 	 \brief	Get the actual seconds value
- 	 \param[in]  void
- 	 \return new seconds value
- */
-uint8_t GetSecond(void);
-/********************************************************************************************/
-/*!
- 	 \brief	Get the actual mintes value
- 	 \param[in]  void
- 	 \return new minutes value
- */
-uint8_t GetMinute(void);
-/********************************************************************************************/
-/*!
- 	 \brief	Get the actual hours value
- 	 \param[in]  void
- 	 \return new hours value
- */
-uint8_t GetHour(void);
+uint8_t RTC_read_byte(uint8_t address);
 /********************************************************************************************/
 /*!
  	 \brief	Update the new time value on UART to let the digital clock be seen by the user
@@ -147,7 +148,9 @@ void UpdateDisplayTime(void);
  	 \param[in]  array containing all the values as numeric form
  	 \return void
  */
-void UpdateTime(uint8_t time[]);
+void UpdateTime(config_rtc_t date_or_time, uint8_t time[]);
+
+
 
 
 #endif /* MCP7940_H_ */
