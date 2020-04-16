@@ -17,64 +17,64 @@ uint8_t matrix_test[] = {0x81, 0x81, 0x70, 0x07, 0x60, 0x68, 0x50, 0x05, 0x40, 0
 void MATRIX_init(void)
 {
 	/** Start sending the third byte configuration*/
-	I2C_tx_rx_mode(TRANSMITTER);
-	I2C_start();
+	I2C_tx_rx_mode(I2C_0, TRANSMITTER);
+	I2C_start(I2C_0);
 
-	I2C_write_byte(MATRIX_WRITE_ADDRESS);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,MATRIX_WRITE_ADDRESS);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(FIRST_INIT_VALUE);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,FIRST_INIT_VALUE);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_stop();
+	I2C_stop(I2C_0);
 	/** Start sending the second byte configuration*/
-	I2C_start();
+	I2C_start(I2C_0);
 
-	I2C_write_byte(MATRIX_WRITE_ADDRESS);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,MATRIX_WRITE_ADDRESS);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(SECOND_INIT_VALUE);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,SECOND_INIT_VALUE);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_stop();
+	I2C_stop(I2C_0);
 
 	/** Start sending the third byte configuration*/
-	I2C_start();
+	I2C_start(I2C_0);
 
-	I2C_write_byte(MATRIX_WRITE_ADDRESS);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,MATRIX_WRITE_ADDRESS);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(THIRD_INIT_VALUE);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,THIRD_INIT_VALUE);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_stop();
+	I2C_stop(I2C_0);
 
 }
 
 void MATRIX_test(void)
 {
-	I2C_start();
+	I2C_start(I2C_0);
 	/**Start communicating with matrix */
-	I2C_write_byte(MATRIX_WRITE_ADDRESS);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,MATRIX_WRITE_ADDRESS);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
-	I2C_write_byte(MATRIX_MEM_ADDRESS);
-	I2C_wait();
-	I2C_get_ack();
+	I2C_write_byte(I2C_0,MATRIX_MEM_ADDRESS);
+	I2C_wait(I2C_0);
+	I2C_get_ack(I2C_0);
 
 	for(uint8_t i = 0; i < 16; i ++  )
 	{
-		I2C_write_byte(matrix_test[i]);
-		I2C_wait();
-		I2C_get_ack();
+		I2C_write_byte(I2C_0,matrix_test[i]);
+		I2C_wait(I2C_0);
+		I2C_get_ack(I2C_0);
 	}
 
-	I2C_stop();
+	I2C_stop(I2C_0);
 }

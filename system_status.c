@@ -91,7 +91,7 @@ void config_hour(uint8_t data_from_user)
 	/**Once all hour digits are completed the hour can be set*/
 	else if(ENTER_ASCII == data_from_user)
 	{
-		UpdateTime(g_set_hour_digit);
+		//UpdateTime(g_set_hour_digit);
 		display_main_menu();
 		g_status = MAIN_MENU;
 	}
