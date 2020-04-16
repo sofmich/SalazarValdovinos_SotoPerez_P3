@@ -48,7 +48,7 @@ void read_hour(void)
 	UART_put_string(UART_0, "La hora actual es\r");
 	/** VT100 command for positioning the cursor in x and y position*/
 	UART_put_string(UART_0,"\033[11;10H");
-	GPIO_callback_init(GPIO_D, UpdateDisplayTime);
+	//GPIO_callback_init(GPIO_D, UpdateDisplayTime);
 }
 
 void display_config_hour(void)
@@ -132,7 +132,7 @@ uint8_t init_system(void)
 	GPIO_callback_init(GPIO_D, clear_callback);
 
 	/** Configure RTC hardware to init 1Hz signal*/
-	Init_MCP7940(I2C_0, baud_rate);
+	//Init_MCP7940(I2C_0, baud_rate);
 
 	/**Enables interrupts*/
 	NVIC_global_enable_interrupts;

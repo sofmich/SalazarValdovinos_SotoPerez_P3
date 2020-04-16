@@ -11,78 +11,86 @@
 #include "UART.h"
 #include "RAM.h"
 #include "delay.h"
+/** String whom will be returned as a red memory*/
+uint8_t g_read_string[] = {FALSE};
 
 #define DELAY 100U
 void RAM_write(uint8_t address, uint8_t* data)
 {
-	I2C_start(I2C_O);
+	I2C_start();
 	/**Start comunicating with memory to write*/
-	I2C_write_byte(I2C_0, RAM_WRITE_ADDRESS);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	I2C_write_byte(RAM_WRITE_ADDRESS);
+	I2C_wait();
+	I2C_get_ack();
 
 
-	I2C_write_byte(I2C_0, RAM_HIGH_ADDRESS);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	I2C_write_byte(RAM_HIGH_ADDRESS);
+	I2C_wait();
+	I2C_get_ack();
 
-	I2C_write_byte(I2C_0, address);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	I2C_write_byte(address);
+	I2C_wait();
+	I2C_get_ack();
 
 	/** This will start a sequential write and stop when memory reaches a end of string*/
 	while (*data != '\0') {
 		/** Write data on */
-		I2C_write_byte(I2C_0, *data);
-		I2C_wait(I2C_0);
-		I2C_get_ack(I2C_0);
+		I2C_write_byte(*data);
+		I2C_wait();
+		I2C_get_ack();
 		*data++;
 	}
 	/** Set a stop bit indicating writing is finally finished*/
-	I2C_stop(I2C_0);
+	I2C_stop();
 }
 uint8_t RAM_read_byte(uint8_t address)
 {
-	I2C_start(I2C_O);
+	I2C_start();
 	/**Start comunicating with memory to write and then read*/
-	I2C_write_byte(I2C_0, RAM_WRITE_ADDRESS);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	I2C_write_byte(RAM_WRITE_ADDRESS);
+	I2C_wait();
+	I2C_get_ack();
 
 
-	I2C_write_byte(I2C_0, RAM_HIGH_ADDRESS);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	I2C_write_byte(RAM_HIGH_ADDRESS);
+	I2C_wait();
+	I2C_get_ack();
 
-	I2C_write_byte(I2C_0, address);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	I2C_write_byte(address);
+	I2C_wait();
+	I2C_get_ack();
 
 	/** Generate a new start for reading*/
-	I2C_repeted_start(I2C_0); //Generating a new start for Reading
+	I2C_repeted_start();
 
 	/** Start a read process*/
-	I2C_write_byte(I2C_0, RAM_READ_ADRESS);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	I2C_write_byte(RAM_READ_ADDRESS);
+	I2C_wait();
+	I2C_get_ack();
 
 	/** Changing to receiver mode*/
-	I2C_tx_rx_mode(I2C_0, RECEIVER_MODE);
+	I2C_tx_rx_mode(RECEIVER);
 
 	I2C_nack();
 	uint8_t data = I2C_read_byte();
-	I2C_wait(I2C_0);
-	I2C_nack(I2C_0);
+	I2C_wait();
+	I2C_nack();
 
-	I2C_stop(I2C_0);
-	data = I2C_read_byte(I2C_0);
+	I2C_stop();
+	data = I2C_read_byte();
 
-	return cadena;
+	return data;
 
 
 }
 
 uint8_t *RAM_read_string(uint8_t address, uint8_t length)
 {
+	for(uint8_t i = 0; i < length; i++)
+	{
+		g_read_string[i] = RAM_read_byte(address + i);
+	}
+	uint8_t *p_memory_string = &g_read_string;
+	return p_memory_string;
 
 }
