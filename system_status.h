@@ -25,6 +25,9 @@
 
 #define INPUTS_YES	3U
 
+#define MODES_ACCOUNT 	9U
+
+#define NOT_A_TERMINAL	10U
 
 typedef enum uint8_t{
 	MAIN_MENU,
@@ -39,21 +42,40 @@ typedef enum uint8_t{
 } SYSTEM_MODE;
 
 
-void main_menu(void);
 
-void config_date_time(uint8_t data_from_user);
-void read_time_menu(uint8_t data_from_user);
-void read_date(void);
+typedef uint8_t UART_in_user_t;
+void main_menu(UART_in_user_t terminal_in_use);
+
+void config_time(UART_in_user_t terminal_in_use,uint8_t data_from_user);
+void config_date(UART_in_user_t terminal_in_use, uint8_t data_from_user);
+void read_time_menu(UART_in_user_t terminal_in_use, uint8_t data_from_user);
+void read_date(UART_in_user_t terminal_in_use);
 
 void start_chat(uint8_t data_from_user);
 
+typedef void * ControlStatus;
 
+void init_system(void);
 
-uint8_t init_system(void);
+void display_main_menu(UART_in_user_t terminal_in_use);
+void display_default(UART_in_user_t terminal_in_use);
+/********************************************************************************************/
+/*!
+ 	 \brief	Update the new time value on UART to let the digital clock be seen by the user
+ 	 \param[in]  void
+ 	 \return void
+ */
+void UpdateDisplayTime(void);
+/********************************************************************************************/
+/*!
+ 	 \brief	Display on UART the current date
+ 	 \param[in]  void
+ 	 \return void
+ */
 
-void display_main_menu(void);
-void display_default(void);
+void UpdateDisplayDate(void);
 
-void system_control(uint8_t data_from_user);
+void system_control(UART_in_user_t terminal_in_use, uint8_t data_from_user);
+void mode_in_use(UART_in_user_t terminal_in_use);
 
 #endif /* SYSTEM_STATUS_H_ */

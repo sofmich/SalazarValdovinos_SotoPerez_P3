@@ -99,106 +99,6 @@ uint8_t RTC_read_byte(uint8_t address)
 }
 
 
-void UpdateDisplayTime(void)
-{
-	/** Structure to save all elements of time format*/
-	time_format_t actual_time;
-	/** Get hours and print them on UART*/
-	uint8_t temp_time = RTC_read_byte(HOUR);
-	delay(DELAY);
-	printf("==============TEMP TIME HRS %x \n", temp_time);
-	if(temp_time < 12)
-	{
-		actual_time.am_pm = AM;
-	}
-	else
-	{
-		temp_time = temp_time - 12;
-		actual_time.am_pm = PM;
-	}
-	/** Get hours tens*/
-	actual_time.tens_hours = (temp_time & TENS_HOURS) >> CENTS_SHIFTER;
-	printf("********* HRS TO PRINT %x \n", actual_time.tens_hours);
-	/** Get hours units*/
-	actual_time.units_hours = temp_time & UNITS_MASK;
-	/** Get minutes and print them on UART*/
-	temp_time = RTC_read_byte(MIN);
-	delay(DELAY);
-	/** Get minutes teens*/
-	actual_time.tens_minutes = (temp_time & TENS_MINS) >>  CENTS_SHIFTER;
-	/** Get minutes units*/
-	actual_time.units_minutes = temp_time & UNITS_MASK;
-	/** Get seconds and print them on UART*/
-	temp_time = RTC_read_byte(SEC);
-	delay(DELAY);
-	/** Get seconds teens*/
-	actual_time.tens_seconds = (temp_time & TENS_SEC) >> CENTS_SHIFTER;
-	/** Get seconds units*/
-	actual_time.units_seconds = temp_time & UNITS_MASK;
-
-	printf("Actual time \n %d%d : %d%d: %d%d AM O PM %d\n",
-			actual_time.tens_hours, actual_time.units_hours,
-			actual_time.tens_minutes, actual_time.units_minutes,
-			actual_time.tens_seconds, actual_time.units_seconds,
-			actual_time.am_pm);
-
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[12;10H");
-	/** Print chars of display time HH:MM:SS am*/
-	uint8_t dots = ASCII_DOTS;
-	UART_put_char(UART_0, actual_time.tens_hours + ASCII_CONST);
-	UART_put_char(UART_0, actual_time.units_hours + ASCII_CONST);
-	UART_put_char(UART_0, dots);
-	UART_put_char(UART_0, actual_time.tens_minutes+ ASCII_CONST);
-	UART_put_char(UART_0, actual_time.units_minutes + ASCII_CONST);
-	UART_put_char(UART_0, dots);
-	UART_put_char(UART_0, actual_time.tens_seconds + ASCII_CONST);
-	UART_put_char(UART_0, actual_time.units_seconds + ASCII_CONST);
-	switch(actual_time.am_pm)
-	{
-	case(AM):
-		UART_put_string(UART_0,"   AM");
-	break;
-	case(PM):
-		UART_put_string(UART_0,"   AM");
-	break;
-	}
-
-
-}
-void UpdateDisplayDate(void)
-{
-	uint8_t date_format[3];
-	date_format_t actual_date = {FALSE};
-	/** Read all digits of date*/
-	date_format[0] = RTC_read_byte(YEARS_ADDRESS);
-	date_format[1] = RTC_read_byte(MONTHS_ADDRESS);
-	date_format[2] = RTC_read_byte(DAYS_ADDRESS);
-	printf("++++++++++ Actual date\n %x / %x / %x \n",
-			date_format[2], date_format[1], date_format[0]);
-
-	/** Adjust tens and units of each digit*/
-	actual_date.tens_years = (date_format[0] & YEARS_CENTS_MASK) >> CENTS_SHIFTER;
-	actual_date.units_years = (date_format[0] & UNITS_MASK);
-	/* Adjust tens and units of months*/
-	actual_date.tens_months = (date_format[1] & MONTHS_CENTS_MASK) >> CENTS_SHIFTER;
-	actual_date.units_months = (date_format[1] & UNITS_MASK);
-	/* Adjust tens and units of days*/
-	actual_date.tens_days = (date_format[2] & DAYS_CENTS_MASK) >>  CENTS_SHIFTER;
-	actual_date.units_days = (date_format[2] & UNITS_MASK);
-
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[12;10H");
-	/** Print chars of display time HH:MM:SS am*/
-	UART_put_char(UART_0, actual_date.tens_days + ASCII_CONST);
-	UART_put_char(UART_0, actual_date.units_days + ASCII_CONST);
-	UART_put_char(UART_0, '/');
-	UART_put_char(UART_0, actual_date.tens_months + ASCII_CONST);
-	UART_put_char(UART_0, actual_date.units_months  + ASCII_CONST);
-	UART_put_char(UART_0, '/');
-	UART_put_char(UART_0, actual_date.tens_years + ASCII_CONST);
-	UART_put_char(UART_0, actual_date.units_years  + ASCII_CONST);
-}
 
 void UpdateTime(config_rtc_t date_or_time, uint8_t time[])
 {
@@ -247,4 +147,70 @@ void UpdateTime(config_rtc_t date_or_time, uint8_t time[])
 
 }
 
+time_format_t GetGlobalTime(void)
+{
+	/** Structure to save all elements of time format*/
+	time_format_t actual_time;
+	/** Get hours and print them on UART*/
+	uint8_t temp_time = RTC_read_byte(HOUR);
+	delay(DELAY);
+	printf("==============TEMP TIME HRS %x \n", temp_time);
+	if(temp_time < 12)
+	{
+		actual_time.am_pm = AM;
+	}
+	else
+	{
+		actual_time.am_pm = PM;
+	}
+	/** Get hours tens*/
+	actual_time.tens_hours = (temp_time & TENS_HOURS) >> CENTS_SHIFTER;
+	/** Get hours units*/
+	actual_time.units_hours = temp_time & UNITS_MASK;
+	/** Get minutes and print them on UART*/
+	temp_time = RTC_read_byte(MIN);
+	delay(DELAY);
+	/** Get minutes teens*/
+	actual_time.tens_minutes = (temp_time & TENS_MINS) >>  CENTS_SHIFTER;
+	/** Get minutes units*/
+	actual_time.units_minutes = temp_time & UNITS_MASK;
+	/** Get seconds and print them on UART*/
+	temp_time = RTC_read_byte(SEC);
+	delay(DELAY);
+	/** Get seconds teens*/
+	actual_time.tens_seconds = (temp_time & TENS_SEC) >> CENTS_SHIFTER;
+	/** Get seconds units*/
+	actual_time.units_seconds = temp_time & UNITS_MASK;
 
+	printf("Actual time \n %d%d : %d%d: %d%d AM O PM %d\n",
+			actual_time.tens_hours, actual_time.units_hours,
+			actual_time.tens_minutes, actual_time.units_minutes,
+			actual_time.tens_seconds, actual_time.units_seconds,
+			actual_time.am_pm);
+
+	return actual_time;
+}
+
+date_format_t GetGlobalDate(void){
+	uint8_t date_format[3];
+	date_format_t actual_date = {FALSE};
+	/** Read all digits of date*/
+	date_format[0] = RTC_read_byte(YEARS_ADDRESS);
+	date_format[1] = RTC_read_byte(MONTHS_ADDRESS);
+	date_format[2] = RTC_read_byte(DAYS_ADDRESS);
+	printf("++++++++++ Actual date\n %x / %x / %x \n",
+			date_format[2], date_format[1], date_format[0]);
+
+	/** Adjust tens and units of each digit*/
+	actual_date.tens_years = (date_format[0] & YEARS_CENTS_MASK) >> CENTS_SHIFTER;
+	actual_date.units_years = (date_format[0] & UNITS_MASK);
+	/* Adjust tens and units of months*/
+	actual_date.tens_months = (date_format[1] & MONTHS_CENTS_MASK) >> CENTS_SHIFTER;
+	actual_date.units_months = (date_format[1] & UNITS_MASK);
+	/* Adjust tens and units of days*/
+	actual_date.tens_days = (date_format[2] & DAYS_CENTS_MASK) >>  CENTS_SHIFTER;
+	actual_date.units_days = (date_format[2] & UNITS_MASK);
+
+	return actual_date;
+
+}

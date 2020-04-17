@@ -135,13 +135,7 @@ void RTC_write_byte(uint8_t address, uint8_t data);
  	 \return data
  */
 uint8_t RTC_read_byte(uint8_t address);
-/********************************************************************************************/
-/*!
- 	 \brief	Update the new time value on UART to let the digital clock be seen by the user
- 	 \param[in]  void
- 	 \return void
- */
-void UpdateDisplayTime(void);
+
 /********************************************************************************************/
 /*!
  	 \brief	Set a new time value acording to format HH:MM:SS
@@ -149,8 +143,21 @@ void UpdateDisplayTime(void);
  	 \return void
  */
 void UpdateTime(config_rtc_t date_or_time, uint8_t time[]);
+/********************************************************************************************/
+/*!
+ 	 \brief	Get the actual value of time
+ 	 \param[in]  void
+ 	 \return estructure with all digits
+ */
+time_format_t GetGlobalTime(void);
+/********************************************************************************************/
+/*!
+ 	 \brief	Get the actual value of date
+ 	 \param[in]  void
+ 	 \return direction of date values
+ */
 
-
+date_format_t GetGlobalDate(void);
 
 
 #endif /* MCP7940_H_ */
