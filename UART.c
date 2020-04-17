@@ -115,6 +115,11 @@ void UART_init(uart_channel_t uart_channel, uint32_t system_clk, uart_baud_rate_
 		/**Enable transmission and reception data*/
 		UART0->C2 |= (UART_C2_RE_MASK);
 		UART0->C2 |= (UART_C2_TE_MASK);
+		/**Configures UART 0 */
+		/**Configures the pin control register of pin16 in PortB as UART0 RX*/
+		PORTB->PCR[16] = PORT_PCR_MUX(3);
+		/**Configures the pin control register of pin16 in PortB as UART0 TX*/
+		PORTB->PCR[17] = PORT_PCR_MUX(3);
 		break;
 	case(UART_1):
 		SIM->SCGC4 = SIM_SCGC4_UART1_MASK;
@@ -171,6 +176,11 @@ void UART_init(uart_channel_t uart_channel, uint32_t system_clk, uart_baud_rate_
 		/**Enable transmission and reception data*/
 		UART4->C2 |= (UART_C2_RE_MASK);
 		UART4->C2 |= (UART_C2_TE_MASK);
+		/**Configures UART 0 */
+		/**Configures the pin control register of pin16 in PortB as UART0 RX*/
+		PORTC->PCR[14] = PORT_PCR_MUX(3);
+		/**Configures the pin control register of pin16 in PortB as UART0 TX*/
+		PORTC->PCR[15] = PORT_PCR_MUX(3);
 		break;
 	case(UART_5):
 		SIM->SCGC1 = SIM_SCGC1_UART5_MASK;
