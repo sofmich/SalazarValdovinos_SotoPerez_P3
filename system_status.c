@@ -19,34 +19,34 @@
 
 /** Global mode s used to manipulate from infinite loop*/
 uint8_t g_status = MAIN_MENU;
-/** Global uart value to alternate between two terminals*/
-uint8_t g_UART_in_use = FALSE;
 
 /** Configuration for I2C baud rate*/
 const i2c_baud_rate_t baud_rate = {2, 1 };
 
 /** Pointer used to make callback point to direction zero and not execute any funciton*/
 void (*clear_callback)(void) = FALSE;
+
 /** Save data that will be transmitted through I2C*/
 uint8_t g_set_rtc_time[HOUR_DIGITS] = {FALSE};
 /** Save data that will be transmitted through I2C*/
 uint8_t g_set_rtc_date[HOUR_DIGITS] = {FALSE};
+
 /** Counter of times a digit is entered for setting hour*/
 uint8_t g_counter_inputs_time  = FALSE;
 /** Counter of times a digit is entered for setting date*/
 uint8_t g_counter_inputs_date  = FALSE;
+
 /** Variable to control the total inputs of set new hour/date*/
 uint8_t g_full_set_flag_time = FALSE;
 /** Variable to control the total inputs of set new hour/date*/
 uint8_t g_full_set_flag_date = FALSE;
+
 /** Flag to control wheter reading hour is on terminal o matrix*/
 uint8_t g_flag_YES;
 /** Array to control number of inputs*/
 uint8_t g_INPUTS[INPUTS_YES] = {FALSE};
-/** Terminal to use callback of time*/
-uint8_t g_terminal_update_time = FALSE;
-/** Terminal to use callback of date*/
-uint8_t g_terminal_update_date = FALSE;
+
+
 /** Input counter to YES action*/
 uint8_t g_counter_inputs_yes = FALSE;
 
@@ -223,11 +223,11 @@ void display_default(UART_in_user_t terminal_in_use)
 {
 
 	/*VT100 command for clearing the screen*/
-	UART_put_string(g_UART_in_use,"\033[2J");
+	UART_put_string(terminal_in_use,"\033[2J");
 	/** VT100 command for text in  bright, black and background in cyan*/
-	UART_put_string(g_UART_in_use,"\033[1;30;47m");
+	UART_put_string(terminal_in_use,"\033[1;30;47m");
 	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(g_UART_in_use,"\033[10;10H");
+	UART_put_string(terminal_in_use,"\033[10;10H");
 	switch(g_status)
 	{
 	case(SET_TIME):
@@ -304,18 +304,19 @@ void UpdateDisplayTime(void)
 }
 void UpdateDisplayDate(void)
 {
+	uint8_t UART_in_use = g_UART_mode[READ_DATE];
 	date_format_t actual_date = GetGlobalDate();
 	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[12;10H");
+	UART_put_string(UART_in_use,"\033[12;10H");
 	/** Print chars of display time HH:MM:SS am*/
-	UART_put_char(UART_0, actual_date.tens_days + ASCII_CONST);
-	UART_put_char(UART_0, actual_date.units_days + ASCII_CONST);
-	UART_put_char(UART_0, '/');
-	UART_put_char(UART_0, actual_date.tens_months + ASCII_CONST);
-	UART_put_char(UART_0, actual_date.units_months  + ASCII_CONST);
-	UART_put_char(UART_0, '/');
-	UART_put_char(UART_0, actual_date.tens_years + ASCII_CONST);
-	UART_put_char(UART_0, actual_date.units_years  + ASCII_CONST);
+	UART_put_char(UART_in_use, actual_date.tens_days + ASCII_CONST);
+	UART_put_char(UART_in_use, actual_date.units_days + ASCII_CONST);
+	UART_put_char(UART_in_use, '/');
+	UART_put_char(UART_in_use, actual_date.tens_months + ASCII_CONST);
+	UART_put_char(UART_in_use, actual_date.units_months  + ASCII_CONST);
+	UART_put_char(UART_in_use, '/');
+	UART_put_char(UART_in_use, actual_date.tens_years + ASCII_CONST);
+	UART_put_char(UART_in_use, actual_date.units_years  + ASCII_CONST);
 }
 
 
