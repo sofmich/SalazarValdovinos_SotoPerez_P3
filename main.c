@@ -11,6 +11,7 @@
 #include "MK64F12.h" /* include peripheral declarations */
 #include "UART.h"/**UART device driver*/
 #include "system_status.h"
+#include "MCP7940.h"
 
 
 
@@ -26,16 +27,23 @@
 int main(void)
 {
 	/**Init all system*/
-	uint8_t status = init_system();
-	system_set_status(status);
-	for(;;) {
+	init_system();
+	uint8_t UART_in_use  = FALSE;
+	for(;;)
+	{
 		if(TRUE == UART_get_interrupt_flag(UART_0))
 		{
 			UART_clear_interrupt_flag(UART_0);
-			/** Save the key the user has pressed*/
-			uint8_t data_from_user = UART_get_mailbox(UART_0);
-
+			UART_in_use  = UART_0;
 		}
+		else if(TRUE == UART_get_interrupt_flag(UART_4))
+		{
+			UART_clear_interrupt_flag(UART_4);
+			UART_in_use  = UART_4;
+		}
+		/** Save the key the user has pressed*/
+		uint8_t data_from_user = UART_get_mailbox(UART_0);
+		system_control(UART_in_use, data_from_user);
 	}
 
 	return 0;
