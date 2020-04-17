@@ -55,16 +55,6 @@ uint8_t g_counter_inputs_yes = FALSE;
 uint8_t g_UART_mode[MODES_ACCOUNT] = {NOT_A_TERMINAL};
 
 
-
-ControlStatus Execute_Functionality[] = {
-		FALSE,
-		config_time,
-		config_date,
-
-
-};
-
-
 void main_menu(UART_in_user_t terminal_in_use)
 {
 
@@ -286,26 +276,27 @@ void UpdateDisplayTime(void)
 {
 	/** Structure to save all elements of time format*/
 	time_format_t actual_time = GetGlobalTime();
+	uint8_t UART_in_use = g_UART_mode[READ_TIME];
 
 	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(UART_0,"\033[12;10H");
+	UART_put_string(UART_in_use,"\033[12;10H");
 	/** Print chars of display time HH:MM:SS am*/
 	uint8_t dots = ASCII_DOTS;
-	UART_put_char(g_UART_in_use, actual_time.tens_hours + ASCII_CONST);
-	UART_put_char(UART_0, actual_time.units_hours + ASCII_CONST);
-	UART_put_char(UART_0, dots);
-	UART_put_char(UART_0, actual_time.tens_minutes+ ASCII_CONST);
-	UART_put_char(UART_0, actual_time.units_minutes + ASCII_CONST);
-	UART_put_char(UART_0, dots);
-	UART_put_char(UART_0, actual_time.tens_seconds + ASCII_CONST);
-	UART_put_char(UART_0, actual_time.units_seconds + ASCII_CONST);
+	UART_put_char(UART_in_use, actual_time.tens_hours + ASCII_CONST);
+	UART_put_char(UART_in_use, actual_time.units_hours + ASCII_CONST);
+	UART_put_char(UART_in_use, dots);
+	UART_put_char(UART_in_use, actual_time.tens_minutes+ ASCII_CONST);
+	UART_put_char(UART_in_use, actual_time.units_minutes + ASCII_CONST);
+	UART_put_char(UART_in_use, dots);
+	UART_put_char(UART_in_use, actual_time.tens_seconds + ASCII_CONST);
+	UART_put_char(UART_in_use, actual_time.units_seconds + ASCII_CONST);
 	switch(actual_time.am_pm)
 	{
 	case(AM):
-		UART_put_string(UART_0,"   AM");
+		UART_put_string(UART_in_use,"   AM");
 	break;
 	case(PM):
-		UART_put_string(UART_0,"   AM");
+		UART_put_string(UART_in_use,"   AM");
 	break;
 	}
 
@@ -401,8 +392,26 @@ void system_control(UART_in_user_t terminal_in_use ,uint8_t data_from_user)
 {
 	if(MAIN_MENU == g_status)
 	{
-		g_status = data_from_user;
-		display_default(terminal_in_use);
+		uint8_t indicate_busy = FALSE;
+		for(uint8_t status = 0; status < MODES_ACCOUNT ; status++)
+		{
+			/** If a terminal is in use in a state whom matches the one from user, display error*/
+			if(NOT_A_TERMINAL != g_UART_mode[status] &&  status == data_from_user)
+			{
+				indicate_busy = TRUE;
+			}
+		}
+		/** If a terminal in use matched the status from user, then it can not be used*/
+		if(indicate_busy)
+		{
+			mode_in_use(terminal_in_use);
+		}
+		else /** Mode can be used for whether terminal*/
+		{
+			g_status = data_from_user;
+			display_default(terminal_in_use);
+		}
+
 	}
 	/** If main menu is not active, find which state was active and which states corresponds to the terminal in use*/
 	else{
