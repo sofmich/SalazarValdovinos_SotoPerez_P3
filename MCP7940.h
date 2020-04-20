@@ -119,7 +119,7 @@ typedef enum{
  	 \param[in]  I2C baudrate
  	 \return void
  */
-void Init_MCP7940(i2c_channel_t channel, i2c_baud_rate_t baudrate);
+void Init_MCP7940(void);
 
 /********************************************************************************************/
 /*!

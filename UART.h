@@ -3,7 +3,7 @@
 	\brief
 		This is the header file for the UART device driver.
 		It contains the macros and function definition.
-	\author J. Luis Pizano Escalante, luispizano@iteso.mx
+	\author Sofía Salazar, Omar Soto
 	\date	05/03/2019
 	\todo
 		To implement all needed functions
@@ -23,6 +23,7 @@ typedef struct{
 } uart_mail_box_t;
 
 
+
 /**
  * \brief This enum define the UART port to be used.
  */
@@ -33,6 +34,16 @@ typedef enum {UART_0,UART_1,UART_2,UART_3,UART_4,UART_5} uart_channel_t;
  */
 typedef enum {BD_4800 = 4800,BD_9600 = 9600,BD_5600 = 5600, BD_115200 = 115200} uart_baud_rate_t;
 
+/**
+ * \brief It defines a configuration structure for each UART on use
+ */
+typedef struct
+{
+	uart_channel_t uart_channel;
+	uint32_t system_clk;
+	uart_baud_rate_t baud_rate;
+
+}UART_config_t;
 
 /********************************************************************************************/
 /********************************************************************************************/
@@ -56,7 +67,7 @@ void UART_callback_init(uart_channel_t uart_channel, void(*handler)(void));
  	 \param[in]  baudRate sets the baud rate to transmit.
  	 \return void
  */
-void UART_init(uart_channel_t uart_channel, uint32_t system_clk, uart_baud_rate_t baud_rate);
+void UART_init(UART_config_t *config);
 
 /********************************************************************************************/
 /********************************************************************************************/
@@ -133,4 +144,67 @@ void UART_clear_interrupt_flag(uart_channel_t channel);
  	 \return 	 UART data
 */
 uint8_t UART_get_mailbox(uart_channel_t channel);
+
+
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+/*!
+ 	 \brief	 check which information has been received through the serial port
+ 	 \param[in]  uartChannel indicates the UART channel
+ 	 \return 	 UART data
+*/
+void UART_clockGating(uart_channel_t channel);
+
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+/*!
+ 	 \brief	 Enable UART transmission
+ 	 \param[in]  uartChannel indicates the UART channel
+ 	 \return 	 void
+*/
+void UART_Tx_Enable(uart_channel_t channel);
+
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+/*!
+ 	 \brief	 Enable UART Reception
+ 	 \param[in]  uartChannel indicates the UART channel
+ 	 \return 	 void
+*/
+void UART_Rx_Enable(uart_channel_t channel);
+
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+/*!
+ 	 \brief	 Disable UART transmission
+ 	 \param[in]  uartChannel indicates the UART channel
+ 	 \return 	 void
+*/
+void UART_Tx_Disable(uart_channel_t channel);
+
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+/*!
+ 	 \brief	 Disable UART Reception
+ 	 \param[in]  uartChannel indicates the UART channel
+ 	 \return 	 void
+*/
+void UART_Rx_Disable(uart_channel_t channel);
+
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+/*!
+ 	 \brief	 Disable UART Reception
+ 	 \param[in]  uartChannel indicates the UART channel
+ 	 \return 	 void
+*/
+void UART_setBaudRate(uart_channel_t channel, uint32_t system_clk, uint32_t baud_rate);
+
+
 #endif /* UART_H_ */

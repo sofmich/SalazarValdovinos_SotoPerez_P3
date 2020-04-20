@@ -14,13 +14,27 @@
 #include "NVIC.h"
 #include "UART.h"
 #include "delay.h"
+#include "system_status.h"
 
 #define SYSTEM_CLOCK (21000000)
 #define DELAY 100U
 
-void Init_MCP7940(i2c_channel_t channel,  i2c_baud_rate_t baudrate){
+uint8_t g_Status_RTC = FALSE;
+
+/** Configuration for I2C baud rate*/
+const i2c_baud_rate_t RTC_baud_rate = {2, 1 };
+
+static const i2c_config_struct_t RTC_config =
+{
+		I2C_0, /** Channel*/
+		21000000, /** System clock*/
+		RTC_baud_rate.mult, /** Multiplier*/
+		RTC_baud_rate.icr, /** Multiplier*/
+};
+
+void Init_MCP7940(){
 	/** Start comunicating with the RTC*/
-	I2C_init(channel, SYSTEM_CLOCK, baudrate);
+	I2C_init(&RTC_config);
 	/** Initialization hour*/
 	uint8_t init_hour[] = {0,0,0,0,0,0};
 	/** Set the init hour*/
@@ -49,21 +63,31 @@ void RTCenable(void){
 
 void RTC_write_byte(uint8_t address, uint8_t data)
 {
+	uint8_t ackError = FALSE;
+
 	I2C_tx_rx_mode(I2C_0,TRANSMITTER);
 	I2C_start(I2C_0);
 
 	I2C_write_byte(I2C_0,AD_WRITE);
 	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	ackError = I2C_get_ack(I2C_0);
 
-	I2C_write_byte(I2C_0,address);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	if(TRUE == ackError)
+	{
+		SYSTEM_I2C_fail(g_Status_RTC);
+	}
+	else{
 
-	I2C_write_byte(I2C_0,data);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
-	I2C_stop(I2C_0);
+		I2C_write_byte(I2C_0,address);
+		I2C_wait(I2C_0);
+		I2C_get_ack(I2C_0);
+
+		I2C_write_byte(I2C_0,data);
+		I2C_wait(I2C_0);
+		I2C_get_ack(I2C_0);
+		I2C_stop(I2C_0);
+
+	}
 
 }
 uint8_t RTC_read_byte(uint8_t address)
@@ -110,7 +134,7 @@ void UpdateTime(config_rtc_t date_or_time, uint8_t time[])
 	{
 	case(TIME):
 	{
-
+		g_Status_RTC = SET_TIME;
 		/** Allows to set a new hour*/
 		RTC_write_byte(HOUR, hor);
 		/** Give time to I2C to finish transfer*/
@@ -127,6 +151,7 @@ void UpdateTime(config_rtc_t date_or_time, uint8_t time[])
 		break;
 	case(DATE):
 	{
+		g_Status_RTC = SET_DATE;
 		/** Allows to set a new DAY*/
 		RTC_write_byte(DAYS_ADDRESS, hor);
 		/** Give time to I2C to finish transfer*/
@@ -149,24 +174,20 @@ void UpdateTime(config_rtc_t date_or_time, uint8_t time[])
 
 time_format_t GetGlobalTime(void)
 {
+	g_Status_RTC =  READ_TIME;
 	/** Structure to save all elements of time format*/
 	time_format_t actual_time;
 	/** Get hours and print them on UART*/
 	uint8_t temp_time = RTC_read_byte(HOUR);
 	delay(DELAY);
-	printf("==============TEMP TIME HRS %x \n", temp_time);
-	if(temp_time < 12)
-	{
-		actual_time.am_pm = AM;
-	}
-	else
-	{
-		actual_time.am_pm = PM;
-	}
 	/** Get hours tens*/
 	actual_time.tens_hours = (temp_time & TENS_HOURS) >> CENTS_SHIFTER;
 	/** Get hours units*/
 	actual_time.units_hours = temp_time & UNITS_MASK;
+	/** Set AM or PM time*/
+	temp_time &= AM_PM_MASK ;
+	temp_time = (temp_time >> bit_5);
+	actual_time.am_pm = temp_time;
 	/** Get minutes and print them on UART*/
 	temp_time = RTC_read_byte(MIN);
 	delay(DELAY);
@@ -192,6 +213,7 @@ time_format_t GetGlobalTime(void)
 }
 
 date_format_t GetGlobalDate(void){
+	g_Status_RTC =  READ_DATE;
 	uint8_t date_format[3];
 	date_format_t actual_date = {FALSE};
 	/** Read all digits of date*/
