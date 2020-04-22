@@ -23,13 +23,16 @@
 #define FIRST_DOTS	2U
 #define SECOND_DOTS	4U
 
-#define INPUTS_YES	3U
+#define INPUTS_YES	2U
 
 #define MODES_ACCOUNT 	9U
 
 #define NOT_A_TERMINAL	10U
 
-typedef enum uint8_t{
+#define ADDRESS_LENGTH	6U
+#define DIGITS_LENGTH	2U
+
+typedef enum{
 	MAIN_MENU,
 	SET_TIME,
 	SET_DATE,
@@ -41,19 +44,36 @@ typedef enum uint8_t{
 	MATRIX_MESSAGE
 } SYSTEM_MODE;
 
+typedef enum{
+	TERMINAL0,
+	TERMINAL4
+}terminal_t;
+
+typedef struct{
+	uint8_t counter;
+	uint8_t address_flag;
+	uint8_t length_flag;
+	uint8_t message_flag;
+}memoryStagesFlag_t;
 
 
+typedef struct
+{
+	uint8_t status;
+	uint8_t data_from_user;
+
+}UART_MODE_t;
 typedef uint8_t UART_in_user_t;
 void main_menu(UART_in_user_t terminal_in_use);
 
-void config_time(UART_in_user_t terminal_in_use,uint8_t data_from_user);
-void config_date(UART_in_user_t terminal_in_use, uint8_t data_from_user);
-void read_time_menu(UART_in_user_t terminal_in_use, uint8_t data_from_user);
-void read_date(UART_in_user_t terminal_in_use);
+void config_time(void);
+void config_date(void);
+void read_time_menu(void);
 
-void start_chat(uint8_t data_from_user);
 
-typedef void * ControlStatus;
+void start_chat(void);
+
+typedef void (*ControlStatus)(void);
 
 void init_system(void);
 
@@ -77,5 +97,17 @@ void UpdateDisplayDate(void);
 
 void system_control(UART_in_user_t terminal_in_use, uint8_t data_from_user);
 void mode_in_use(UART_in_user_t terminal_in_use);
+
+void write_memory(void);
+void read_memory(void);
+void show_message_matrix(void);
+
+void main_menu_action(void);
+
+
+uint8_t knowTerminal(uint8_t status);
+uint8_t knowTerminalData(uint8_t status);
+
+void SYSTEM_I2C_fail(uint8_t mode);
 
 #endif /* SYSTEM_STATUS_H_ */

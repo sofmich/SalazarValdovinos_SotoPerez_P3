@@ -13,68 +13,84 @@
 #include "mK64F12.h"
 #include "GPIO.h"
 
-i2c_baud_rate_t g_baud_rate;
 
-void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud_rate)
+void I2C_init(i2c_config_struct_t *config)
 {
-	const gpio_pin_control_register_t pinControlRegisterGPIOB = GPIO_MUX2;
+	I2C_clock_gating(config->channel);
+	I2C_baud_rate(config-> channel, config->multiplier, config->clock_rate);
+	I2C_enable(config->channel);
+}
+
+void I2C_baud_rate(i2c_channel_t channel, uint8_t multiplier, uint8_t clock_rate)
+{
 	switch(channel)
 	{
 	case(I2C_0):
-			{
-		/** Enable the clock gating for I2C0 */
-		SIM->SCGC4 |= SIM_SCGC4_I2C0_MASK; /*Enables the I2C0 Clock Gating*/
 		/** Assign the Mult value and the ICR value*/
-		I2C0->F |= 	I2C_F_MULT(g_baud_rate.mult);
-		I2C0->F |=  I2C_F_ICR(g_baud_rate.icr);
-		/** An Acknowledge Not-Acknowledge can be sent **/
-		I2C0->SMB |= I2C_SMB_FACK_MASK;
-		/** Enable the I2C0 module*/
-		I2C0->C1 |= I2C_C1_IICEN_MASK;
-		/**Enable clock from pin*/
-		GPIO_clock_gating(GPIO_B);
-		/** Enable PCR clock gating of I2C pines*/
-		GPIO_pin_control_register(GPIO_B,bit_2,&pinControlRegisterGPIOB);
-		GPIO_pin_control_register(GPIO_B,bit_3,&pinControlRegisterGPIOB);
-
-			}
+		I2C0->F |= 	(multiplier);
+		I2C0->F |=  (clock_rate);
 	break;
 	case(I2C_1):
-			{
-		/** Enable the clock gating for I2C0 */
-		SIM->SCGC4 |= SIM_SCGC4_I2C1_MASK; /*Enables the I2C0 Clock Gating*/
 		/** Assign the Mult value and the ICR value*/
-		I2C1->F |= 	I2C_F_MULT(g_baud_rate.mult);
-		I2C1->F |=  I2C_F_ICR(g_baud_rate.icr);
+		I2C1->F |= 	I2C_F_MULT(multiplier);
+		I2C1->F |=  I2C_F_ICR(clock_rate);
+	break;
+	case(I2C_2):
+		/** Assign the Mult value and the ICR value*/
+		I2C2->F |= 	I2C_F_MULT(multiplier);
+		I2C2->F |=  I2C_F_ICR(clock_rate);
+	break;
+
+	}
+
+}
+void I2C_enable(i2c_channel_t channel)
+{
+	switch(channel)
+	{
+	case(I2C_0):
+		/** Enable the I2C0 module*/
+		I2C0->C1 |= I2C_C1_IICEN_MASK;
+		/** An Acknowledge Not-Acknowledge can be sent **/
+		I2C0->SMB |= I2C_SMB_FACK_MASK;
+	break;
+	case(I2C_1):
 		/** An Acknowledge Not-Acknowledge can be sent **/
 		I2C1->SMB |= I2C_SMB_FACK_MASK;
 		/** Enable the I2C0 module*/
 		I2C1->C1 |= I2C_C1_IICEN_MASK;
-		/**Enable clock from pin*/
-		GPIO_clock_gating(GPIO_B);
-		/** Enable PCR clock gating of I2C pines*/
-		GPIO_pin_control_register(GPIO_B,bit_2,&pinControlRegisterGPIOB);
-		GPIO_pin_control_register(GPIO_B,bit_3,&pinControlRegisterGPIOB);
-			}
 	break;
 	case(I2C_2):
-			{
-		/** Enable the clock gating for I2C0 */
-		SIM->SCGC1 |= SIM_SCGC1_I2C2_MASK; /*Enables the I2C0 Clock Gating*/
-		/** Assign the Mult value and the ICR value*/
-		I2C2->F |= 	I2C_F_MULT(g_baud_rate.mult);
-		I2C2->F |=  I2C_F_ICR(g_baud_rate.icr);
 		/** An Acknowledge Not-Acknowledge can be sent **/
 		I2C2->SMB |= I2C_SMB_FACK_MASK;
 		/** Enable the I2C0 module*/
 		I2C2->C1 |= I2C_C1_IICEN_MASK;
-		/**Enable clock from pin*/
-		GPIO_clock_gating(GPIO_B);
-		/** Enable PCR clock gating of I2C pines*/
-		GPIO_pin_control_register(GPIO_B,bit_2,&pinControlRegisterGPIOB);
-		GPIO_pin_control_register(GPIO_B,bit_3,&pinControlRegisterGPIOB);
-			}
 	break;
+	default:
+		break;
+	}
+
+}
+
+void I2C_clock_gating(i2c_channel_t channel)
+{
+	switch(channel)
+	{
+		case I2C_0:
+			SIM->SCGC4 |= SIM_SCGC4_I2C0_MASK;
+			PORTB->PCR[2] = PORT_PCR_MUX(2);
+			/**Configures the pin control register of pin16 in PortB as UART0 TX*/
+			PORTB->PCR[3] = PORT_PCR_MUX(2);
+			break;
+		case I2C_1:
+			SIM->SCGC4 |= SIM_SCGC4_I2C1_MASK;
+			break;
+		case I2C_2:
+			/** Enable the clock gating for I2C0 */
+			SIM->SCGC1 |= SIM_SCGC1_I2C2_MASK;
+			break;
+		default:
+			break;
 	}
 }
 

@@ -34,6 +34,15 @@ typedef struct
 	uint8_t mult : 2;
 } i2c_baud_rate_t;
 
+typedef struct
+{
+	i2c_channel_t channel;
+	uint32_t system_clock;
+	uint8_t multiplier;
+	uint8_t clock_rate;
+
+}i2c_config_struct_t;
+
 
 /**
  * \brief This constants are used to configure the the I2C slave/master mode.
@@ -60,7 +69,40 @@ typedef enum {RECEIVER, TRANSMITTER} tx_or_rx_t;
   	 \param[in] baud_rate is ans structure that contains the fiels mult and icr.
   	 \return void
   */
-void I2C_init(i2c_channel_t channel, uint32_t system_clock, i2c_baud_rate_t baud_rate);
+void I2C_init(i2c_config_struct_t *config);
+
+/********************************************************************************************/
+ /********************************************************************************************/
+ /********************************************************************************************/
+ /*!
+  	 \brief
+  	 	 Configures the I2C port based on the input parameters ans enables the I2C module.
+  	 \param[in] channel to activate clock
+  	 \return void
+  */
+void I2C_clock_gating(i2c_channel_t channel);
+/********************************************************************************************/
+ /********************************************************************************************/
+ /********************************************************************************************/
+ /*!
+  	 \brief
+  	 	 Configures the I2C port baud rate based on the input parameters ans enables the I2C module
+  	 \param[in] channel It is the channel to be used.
+  	 \param[in] baud_rate is ans structure that contains the fiels mult and icr.
+  	 \param[in] systemClock Frequency of the system.
+  	 \return void
+  */
+void I2C_baud_rate(i2c_channel_t channel ,uint8_t multiplier, uint8_t clock_rate);
+/********************************************************************************************/
+ /********************************************************************************************/
+ /********************************************************************************************/
+ /*!
+  	 \brief
+  	 	 Configures the I2C port baud rate based on the input parameters ans enables the I2C module
+  	 \param[in] channel It is the channel to be used.
+  	 \return void
+  */
+void I2C_enable(i2c_channel_t channel);
 
  /********************************************************************************************/
  /********************************************************************************************/

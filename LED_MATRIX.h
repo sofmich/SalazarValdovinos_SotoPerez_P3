@@ -31,11 +31,13 @@ typedef enum{
 
 void MATRIX_init(void);
 void MATRIX_show(uint8_t * matrix_cols_values);
-void MATRIX_show_time(void);
+
 uint8_t *MATRIX_char_to_columns(uint8_t char_data);
 
 void MATRIX_off(void);
 void MATRIX_dot(dot_status_t MODE);
+
+void MATRIX_show_time(void);
 
 
 #endif /* LED_MATRIX_H_ */
