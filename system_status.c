@@ -288,6 +288,11 @@ void init_system(void)
 	NVIC_enable_interrupt_and_priotity(UART4_IRQ, PRIORITY_9);
 	NVIC_enable_interrupt_and_priotity(PORTD_IRQ, PRIORITY_10);
 
+//	gpio_pin_control_register_t UART4_t = GPIO_MUX3;
+
+//	GPIO_pin_control_register(GPIO_C,bit_14, &UART4_t);
+//	GPIO_pin_control_register(GPIO_C,bit_15, &UART4_t);
+
 	display_main_menu(UART_0);
 	display_main_menu(UART_4);
 
@@ -300,11 +305,6 @@ void init_system(void)
 	GPIO_data_direction_pin(GPIO_D, bit_0, GPIO_INPUT);
 	/*Callback initialization to nothing**/
 	GPIO_callback_init(GPIO_D, clear_callback);
-
-//	gpio_pin_control_register_t UART4_t = GPIO_MUX3;
-//
-//	GPIO_pin_control_register(GPIO_C,bit_14, &UART4_t);
-//	GPIO_pin_control_register(GPIO_C,bit_15, &UART4_t);
 
 	/** Init RAM to start working*/
 	RAM_init();

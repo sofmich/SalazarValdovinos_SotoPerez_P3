@@ -132,7 +132,7 @@ void UART_put_char (uart_channel_t uart_channel, uint8_t character){
 		UART3->D = character;
 		break;
 	case(UART_4):
-		while(!(UART4->S1 & UART_S1_TC_MASK));
+		while(!(UART4->S1 & UART_S1_TDRE_MASK));
 		UART4->D = character;
 		break;
 	case(UART_5):
@@ -144,7 +144,7 @@ void UART_put_char (uart_channel_t uart_channel, uint8_t character){
 
 void UART_put_string(uart_channel_t uart_channel, int8_t* string){
 	while('\0' != *string){
-		UART_put_char(UART_0, *string);
+		UART_put_char(uart_channel, *string);
 		string++;
 	}
 }
@@ -341,7 +341,7 @@ void UART2_RX_TX_IRQHandler(void)
 void UART3_RX_TX_IRQHandler(void)
 {
 	if((UART3->S1 & UART_S1_RDRF_MASK)){
-		g_mail_box_uart[UART_3].mailBox = UART0->D;
+		g_mail_box_uart[UART_3].mailBox = UART3->D;
 		g_mail_box_uart[UART_3].flag = TRUE;
 		if(UARTn_callback[UART_3])
 		{
@@ -352,7 +352,7 @@ void UART3_RX_TX_IRQHandler(void)
 void UART4_RX_TX_IRQHandler(void)
 {
 	if((UART4->S1 & UART_S1_RDRF_MASK)){
-		g_mail_box_uart[UART_4].mailBox = UART0->D;
+		g_mail_box_uart[UART_4].mailBox = UART4->D;
 		g_mail_box_uart[UART_4].flag = TRUE;
 		if(UARTn_callback[UART_4])
 		{
@@ -378,4 +378,3 @@ uint8_t UART_get_mailbox(uart_channel_t channel)
 	return  g_mail_box_uart[channel].mailBox;
 
 }
-
