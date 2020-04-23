@@ -24,19 +24,41 @@
 /** Lenght of MATRIX columns*/
 #define MATRIX_LENGTH			16U
 
-typedef enum{
-	ON,
-	OFF
-}dot_status_t;
 
+/********************************************************************************************/
+/*!
+ 	 \brief	 Send the commands to comunicate thorugh I2C
+ 	 \param[in]  void
+ 	 \return void
+ */
 void MATRIX_init(void);
+/********************************************************************************************/
+/*!
+ 	 \brief	 Go through the values to print on matrix
+ 	 \param[in]  pointer to data to print
+ 	 \return void
+ */
 void MATRIX_show(uint8_t * matrix_cols_values);
-
+/********************************************************************************************/
+/*!
+ 	 \brief	 Converts caracters or numbers to its value on matrix
+ 	 \param[in]  pointer to data to print
+ 	 \return void
+ */
 uint8_t *MATRIX_char_to_columns(uint8_t char_data);
-
+/********************************************************************************************/
+/*!
+ 	 \brief	 Shuts down all leds on matrix
+ 	 \param[in]
+ 	 \return void
+ */
 void MATRIX_off(void);
-void MATRIX_dot(dot_status_t MODE);
-
+/********************************************************************************************/
+/*!
+ 	 \brief	 Get the numeric data time and maps it to matrix values
+ 	 \param[in] 	void
+ 	 \return void
+ */
 void MATRIX_show_time(void);
 
 

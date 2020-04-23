@@ -31,6 +31,7 @@ int main(void)
 	uint8_t data_from_user = FALSE;
 	for(;;)
 	{
+		/** Detect if an interruption from */
 		if(TRUE == UART_get_interrupt_flag(UART_0))
 		{
 			UART_clear_interrupt_flag(UART_0);
