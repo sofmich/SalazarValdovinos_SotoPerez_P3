@@ -311,6 +311,7 @@ void UART0_RX_TX_IRQHandler(void)
 
 }
 
+
 void UART1_RX_TX_IRQHandler(void)
 {
 	if((UART1->S1 & UART_S1_RDRF_MASK)){

@@ -27,7 +27,7 @@ UART_config_t config_UART0={
 UART_config_t config_UART4={
 	UART_4,
 	21000000,
-	BD_115200
+	BD_9600
 };
 
 /** Global mode s used to manipulate from infinite loop*/
@@ -270,22 +270,26 @@ void init_system(void)
 	g_UART_mode[TERMINAL4].data_from_user = FALSE;
 
 	/**Enables the clock of PortB in order to configures TX and RX of UART peripheral*/
-	SIM->SCGC5 = SIM_SCGC5_PORTB_MASK;
+	SIM->SCGC5 |= SIM_SCGC5_PORTB_MASK;
 	/**Configures UART 0 to transmit/receive at 11520 bauds with a 21 MHz of clock core*/
 	UART_init (&config_UART0);
-//	UART_init (&config_UART4);
+	/**Enables the clock of PortC in order to configures TX and RX of UART peripheral*/
+	SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;
+	/**Configures UART 0 to transmit/receive at 11520 bauds with a 21 MHz of clock core*/
+	UART_init (&config_UART4);
+
 	/**Enables the UART 0 interrupt*/
 	UART_interrupt_enable(UART_0);
-	/**Enables the UART 0 interrupt*/
-//	UART_interrupt_enable(UART_4);
+	/**Enables the UART 4 interrupt*/
+	UART_interrupt_enable(UART_4);
 
 	/**Enables the UART 0 and PORTD interrupt in the NVIC*/
 	NVIC_enable_interrupt_and_priotity(UART0_IRQ, PRIORITY_9);
-//	NVIC_enable_interrupt_and_priotity(UART4_IRQ, PRIORITY_9);
+	NVIC_enable_interrupt_and_priotity(UART4_IRQ, PRIORITY_9);
 	NVIC_enable_interrupt_and_priotity(PORTD_IRQ, PRIORITY_10);
 
 	display_main_menu(UART_0);
-//	display_main_menu(UART_4);
+	display_main_menu(UART_4);
 
 	/** Set configurations for GPIOD port*/
 	GPIO_clock_gating(GPIO_D);
@@ -296,6 +300,11 @@ void init_system(void)
 	GPIO_data_direction_pin(GPIO_D, bit_0, GPIO_INPUT);
 	/*Callback initialization to nothing**/
 	GPIO_callback_init(GPIO_D, clear_callback);
+
+//	gpio_pin_control_register_t UART4_t = GPIO_MUX3;
+//
+//	GPIO_pin_control_register(GPIO_C,bit_14, &UART4_t);
+//	GPIO_pin_control_register(GPIO_C,bit_15, &UART4_t);
 
 	/** Init RAM to start working*/
 	RAM_init();
@@ -308,8 +317,6 @@ void init_system(void)
 
 	/**Enables interrupts*/
 	NVIC_global_enable_interrupts;
-
-
 }
 
 void display_main_menu(UART_in_user_t terminal_in_use)
