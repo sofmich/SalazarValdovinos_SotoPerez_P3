@@ -17,6 +17,7 @@
 #include "I2C.h"
 #include "LED_MATRIX.h"
 #include "RAM.h"
+#include "delay.h"
 
 /** Configuration structure for UARTs*/
 UART_config_t config_UART0={
@@ -46,7 +47,7 @@ uint8_t g_counter_inputs_time  = FALSE;
 /** Counter of times a digit is entered for setting date*/
 uint8_t g_counter_inputs_date  = FALSE;
 /** Variable to control the total inputs of set new hour/date*/
-uint8_t g_full_set_flag_time = FALSE;
+uint8_t g_AM_PM = FALSE;
 /** Variable to control the total inputs of set new hour/date*/
 uint8_t g_full_set_flag_date = FALSE;
 /** Flag to control whether reading hour is on terminal o matrix*/
@@ -57,15 +58,30 @@ uint8_t g_INPUTS[INPUTS_YES] = {FALSE};
 uint8_t g_counter_inputs_yes = FALSE;
 /** Flags for each terminal and  mode*/
 UART_MODE_t g_UART_mode[2];
-
 uart_mail_box_t g_mail_box_uart_t[6] = {FALSE};
-
 /** Flags for memory status*/
 memoryStagesFlag_t g_writeRAM_flag = {FALSE, FALSE, FALSE, FALSE};
 memoryStagesFlag_t g_readRAM_flag = {FALSE, FALSE, FALSE, FALSE};
 RAM_Data_t g_writeRAM_Data ;
 RAM_Data_t g_readRAM_Data ;
 uint8_t g_TERMINAL;
+uint8_t g_TIME_format = FALSE;
+/** Structure to indicate all posible connection errors*/
+connection_error_t flag_Error =
+		{
+				FALSE,
+				FALSE,
+				FALSE,
+				FALSE,
+				FALSE,
+				FALSE,
+				FALSE
+		};
+/** Pointer to iterate over error indicators*/
+uint8_t *p_flagError = &(flag_Error.error_setTime);
+/** An structure of pointers that prints the first messages on RAM*/
+first_messages_t g_first_messages = {FALSE};
+/** State machine of the program*/
 ControlStatus System_Status[] =
 {
 		main_menu_action,
@@ -76,60 +92,111 @@ ControlStatus System_Status[] =
 		write_memory,
 		read_memory,
 		start_chat
+//		show_message_matrix
 };
-
+resources_t g_OcupiedResource = {FALSE};
+uint8_t g_UART0_counter = FALSE;
+uint8_t g_UART4_counter = FALSE;
+uint8_t message_UART0[50] = {FALSE};
+uint8_t g_chat_terminal = FALSE;
+uint8_t message_UART4[50] = {FALSE};
 void start_chat(void)
 {
-	uint8_t terminal_in_use = knowTerminal(CHAT);
-	uint8_t data_from_user = knowTerminalData(CHAT);
-	uint8_t message[] = {FALSE};
-	uint8_t counter = 0;
-
-	if(g_mail_box_uart_t[terminal_in_use].flag)
-	{
-		UART_put_char (terminal_in_use, data_from_user);
-		message[counter] = data_from_user;
-		counter++;
-		g_mail_box_uart_t[terminal_in_use].flag = FALSE;
-
-		if(ENTER_ASCII == data_from_user)
+	uint8_t terminal_in_use = g_chat_terminal;  /* Determina si fue de la UART 0  o la UART4*/
+	uint8_t data_from_user = UART_get_mailbox(terminal_in_use);
+	//uint8_t counter = 0;
+	if(terminal_in_use == UART_0)
 		{
-			message[counter] = '\0';
-			if(CHAT == g_UART_mode[terminal_in_use].status)
+			if(g_UART0_counter < 50)
 			{
-				if(UART_0 == terminal_in_use)
+				message_UART0[g_UART0_counter] =data_from_user ;
+				g_UART0_counter++;
+				UART_put_char (UART_0, data_from_user);
+			}
+			if(ENTER_ASCII == data_from_user && g_UART_mode[TERMINAL4].status == CHAT )
+			{
+				g_UART0_counter = FALSE;
+				UART_put_string (UART_0, "TERMINAL0: ");
+				UART_put_string (UART_0, message_UART0);
+				UART_put_string(UART_0,"\033[1B");
+				UART_put_string(UART_0,"\033[1D");
+
+				UART_put_string (UART_4, "TERMINAL0: ");
+				UART_put_string (UART_4, message_UART0);
+				UART_put_string(UART_4,"\033[1B");
+				UART_put_string(UART_4,"\033[1D");
+			}
+			else if(ESC_ASCII == data_from_user)
+			{
+				if( g_UART_mode[TERMINAL4].status == CHAT)
 				{
-					UART_put_string(terminal_in_use,"Terminal 1: \n");
+					UART_put_string(UART_4,"\033[1B");
+					UART_put_string(UART_4,"\033[1D");
+					UART_put_string (UART_4, "TERMINAL1 se desconecto ");
 				}
-				else if(UART_4 == terminal_in_use)
-				{
-					UART_put_string(terminal_in_use,"Terminal 2: \n");
-				}
-				UART_put_string(terminal_in_use, message);
+				g_UART0_counter = FALSE;
+
+				main_menu(UART_0);
 			}
 
 		}
-		counter = 0;
-	}
-	else if(ESC_ASCII == data_from_user)
-	{
-		if(CHAT == g_UART_mode[terminal_in_use].status)
+		else if(terminal_in_use == UART_4)
 		{
-			if(UART_0 == terminal_in_use)
+			if(g_UART4_counter < 50)
 			{
-				UART_put_string(terminal_in_use,"Terminal 1:\r");
+				message_UART4[g_UART4_counter] = data_from_user;
+				g_UART4_counter++;
+				UART_put_char (UART_4, data_from_user);
 			}
-			else if(UART_4 == terminal_in_use)
+			if(ENTER_ASCII == data_from_user && g_UART_mode[TERMINAL0].status == CHAT)
 			{
-				UART_put_string(terminal_in_use,"Terminal 2:\r");
+				g_UART4_counter = FALSE;
+				UART_put_string (UART_0, "TERMINAL1: ");
+				UART_put_string (UART_0, message_UART4);
+				UART_put_string(UART_0,"\033[1B");
+				UART_put_string(UART_0,"\033[1D");
+
+				UART_put_string (UART_4, "TERMINAL1: ");
+				UART_put_string (UART_4, message_UART4);
+				UART_put_string(UART_4,"\033[1B");
+				UART_put_string(UART_4,"\033[1D");
+				//UART_put_string(UART_4,"\033[1B");
+				//UART_put_string(UART_4,"\033[1D");
 			}
-			UART_put_string(terminal_in_use,"Salio del chat\r");
+			else if(ESC_ASCII == data_from_user )
+			{
+				if( g_UART_mode[TERMINAL0].status == CHAT)
+				{
+					UART_put_string(UART_0,"\033[1B");
+					UART_put_string(UART_0,"\033[1D");
+					UART_put_string (UART_0, "TERMINAL4 se desconecto ");
+				}
+				g_UART4_counter = FALSE;
+				main_menu(UART_4);
+			}
+
 		}
-		g_status = MAIN_MENU;
-		main_menu(terminal_in_use);
-	}
-	//printf("CHAT LOGIC SHOULD BE HERE.\n");
+
 }
+
+//void show_message_matrix(void)
+//{
+//	uint8_t terminal_in_use = knowTerminal(MATRIX_MESSAGE);
+//	printf("TERMINAL %d", terminal_in_use);
+//	g_first_messages = readFirstMessages();
+//	/** VT100 command for positioning the cursor in x and y position*/
+//	UART_put_string(terminal_in_use,"\033[12;10H");
+//	UART_put_string(terminal_in_use,"1) ");
+//	UART_put_string(terminal_in_use, g_first_messages.p_message1);
+//	/** VT100 command for positioning the cursor in x and y position*/
+//	UART_put_string(terminal_in_use,"\033[14;10H");
+//	UART_put_string(terminal_in_use,"2) ");
+//	UART_put_string(terminal_in_use, g_first_messages.p_message2);
+//	/** VT100 command for positioning the cursor in x and y position*/
+//	UART_put_string(terminal_in_use,"\033[16;10H");
+//	UART_put_string(terminal_in_use,"3) ");
+//	UART_put_string(terminal_in_use, g_first_messages.p_message1);
+//}
 
 void main_menu(UART_in_user_t terminal_in_use)
 {
@@ -176,7 +243,6 @@ void config_time(void)
 {
 	uint8_t terminal_in_use = knowTerminal(SET_TIME);
 	uint8_t data_from_user = knowTerminalData(SET_TIME);
-
 	if( g_counter_inputs_time < HOUR_DIGITS)
 	{
 		if(data_from_user >= ZERO_ASCII && data_from_user <= NINE_ASCII)
@@ -197,22 +263,31 @@ void config_time(void)
 	/**Once all set digits are completed the hour can be set*/
 	else if(ENTER_ASCII == data_from_user)
 	{
+		/* First update time to 24 hors*/
+		//setFormat(mode_24_hrs);
 		/** Updates time acording if it is an update of hours or date*/
 		UpdateTime(TIME, p_digits_time);
-		/** VT100 command for positioning the cursor in x and y position*/
-		UART_put_string(terminal_in_use,"\033[13;10H");
-		UART_put_string(terminal_in_use,"La hora ha sido configurada");
-		UART_put_string(terminal_in_use,"\033[14;10H");
-		UART_put_string(terminal_in_use,"[ESC] Salir");
+		/* Get back format to its used*/
+		//setFormat(g_TIME_format);
+		if(flag_Error.error_setTime != TRUE)
+		{
+			/** VT100 command for positioning the cursor in x and y position*/
+			UART_put_string(terminal_in_use,"\033[13;10H");
+			UART_put_string(terminal_in_use,"La hora ha sido configurada");
+			UART_put_string(terminal_in_use,"\033[14;10H");
+			UART_put_string(terminal_in_use,"[ESC] Salir");
+		}
+
 	}
 	/** If doing this ESC key is pressed then it should go out */
 	else if(ESC_ASCII == data_from_user)
 	{
+		flag_Error.error_setTime = FALSE;
 		*g_set_rtc_time = FALSE;
 		g_counter_inputs_time  = FALSE;
-		g_full_set_flag_time = FALSE;
 		g_status = MAIN_MENU;
 		main_menu(terminal_in_use);
+		g_OcupiedResource.RTC_ocupied = FALSE;
 	}
 }
 
@@ -220,7 +295,16 @@ void config_date(void)
 {
 	uint8_t terminal_in_use = knowTerminal(SET_DATE);
 	uint8_t data_from_user = knowTerminalData(SET_DATE);
-
+	/** If doing this ESC key is pressed then it should go out */
+	if(ESC_ASCII == data_from_user)
+	{
+		flag_Error.error_setDate = FALSE;
+		*g_set_rtc_date = FALSE;
+		g_counter_inputs_date  = FALSE;
+		g_full_set_flag_date = FALSE;
+		g_OcupiedResource.RTC_ocupied = FALSE;
+		main_menu(terminal_in_use);
+	}
 	if( g_counter_inputs_date < HOUR_DIGITS)
 	{
 		if(data_from_user >= ZERO_ASCII && data_from_user <= NINE_ASCII)
@@ -243,22 +327,18 @@ void config_date(void)
 	{
 		/** Updates time acording if it is an update of hours or date*/
 		UpdateTime(DATE, g_set_rtc_date);
-		/** VT100 command for positioning the cursor in x and y position*/
-		UART_put_string(terminal_in_use,"\033[13;10H");
-		UART_put_string(terminal_in_use,"La fecha ha sido configurada");
-		/** VT100 command for positioning the cursor in x and y position*/
-		UART_put_string(terminal_in_use,"\033[14;10H");
-		UART_put_string(terminal_in_use,"[ESC] Para salir");
+		if(flag_Error.error_setDate != TRUE)
+		{
+			/** VT100 command for positioning the cursor in x and y position*/
+			UART_put_string(terminal_in_use,"\033[13;10H");
+			UART_put_string(terminal_in_use,"La fecha ha sido configurada");
+			/** VT100 command for positioning the cursor in x and y position*/
+			UART_put_string(terminal_in_use,"\033[14;10H");
+			UART_put_string(terminal_in_use,"[ESC] Para salir");
+		}
 		g_full_set_flag_date = TRUE;
 	}
-	/** If doing this ESC key is pressed then it should go out */
-	else if(ESC_ASCII == data_from_user)
-	{
-		*g_set_rtc_date = FALSE;
-		g_counter_inputs_date  = FALSE;
-		g_full_set_flag_date = FALSE;
-		main_menu(terminal_in_use);
-	}
+
 }
 
 void init_system(void)
@@ -270,28 +350,24 @@ void init_system(void)
 	g_UART_mode[TERMINAL4].data_from_user = FALSE;
 
 	/**Enables the clock of PortB in order to configures TX and RX of UART peripheral*/
-	SIM->SCGC5 |= SIM_SCGC5_PORTB_MASK;
+	SIM->SCGC5 = SIM_SCGC5_PORTB_MASK;
 	/**Configures UART 0 to transmit/receive at 11520 bauds with a 21 MHz of clock core*/
 	UART_init (&config_UART0);
 	/**Enables the clock of PortC in order to configures TX and RX of UART peripheral*/
 	SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;
+	//GPIO_clock_gating(GPIO_E);
 	/**Configures UART 0 to transmit/receive at 11520 bauds with a 21 MHz of clock core*/
 	UART_init (&config_UART4);
 
 	/**Enables the UART 0 interrupt*/
 	UART_interrupt_enable(UART_0);
-	/**Enables the UART 4 interrupt*/
+	/**Enables the UART 0 interrupt*/
 	UART_interrupt_enable(UART_4);
 
 	/**Enables the UART 0 and PORTD interrupt in the NVIC*/
 	NVIC_enable_interrupt_and_priotity(UART0_IRQ, PRIORITY_9);
 	NVIC_enable_interrupt_and_priotity(UART4_IRQ, PRIORITY_9);
 	NVIC_enable_interrupt_and_priotity(PORTD_IRQ, PRIORITY_10);
-
-//	gpio_pin_control_register_t UART4_t = GPIO_MUX3;
-
-//	GPIO_pin_control_register(GPIO_C,bit_14, &UART4_t);
-//	GPIO_pin_control_register(GPIO_C,bit_15, &UART4_t);
 
 	display_main_menu(UART_0);
 	display_main_menu(UART_4);
@@ -317,6 +393,8 @@ void init_system(void)
 
 	/**Enables interrupts*/
 	NVIC_global_enable_interrupts;
+
+
 }
 
 void display_main_menu(UART_in_user_t terminal_in_use)
@@ -345,7 +423,8 @@ void display_main_menu(UART_in_user_t terminal_in_use)
 	UART_put_string(terminal_in_use,"\033[14;10H");
 	UART_put_string(terminal_in_use, "7)Chat\r");
 	UART_put_string(terminal_in_use,"\033[15;10H");
-	UART_put_string(terminal_in_use, "8)Mostrar mensaje matriz de leds\r");
+//	UART_put_string(terminal_in_use, "8)Mostrar mensaje matriz de leds\r");
+//	UART_put_string(terminal_in_use,"\033[16;10H");
 }
 
 void display_default(UART_in_user_t terminal_in_use)
@@ -374,6 +453,9 @@ void display_default(UART_in_user_t terminal_in_use)
 		/** VT100 command for positioning the cursor in x and y position*/
 		UART_put_string(terminal_in_use,"\033[11;10H");
 		UART_put_string(terminal_in_use, "HH:MM:SS      24HRS\r");
+		/** VT100 command for positioning the cursor in x and y position*/
+		UART_put_string(terminal_in_use,"\033[12;10H");
+		g_OcupiedResource.RTC_ocupied = TRUE;
 	}
 			break;
 	case(SET_DATE):
@@ -382,30 +464,35 @@ void display_default(UART_in_user_t terminal_in_use)
 		/** VT100 command for positioning the cursor in x and y position*/
 		UART_put_string(terminal_in_use,"\033[11;10H");
 		UART_put_string(terminal_in_use, "dd/mm/aa\r");
+		/** VT100 command for positioning the cursor in x and y position*/
+		UART_put_string(terminal_in_use,"\033[12;10H");
+		g_OcupiedResource.RTC_ocupied = TRUE;
 	}
 	break;
 	case(READ_TIME):
 	{
 		UART_put_string(terminal_in_use, "Elige en que te gustaria ver la hora");
 		/** VT100 command for positioning the cursor in x and y position*/
-		UART_put_string(terminal_in_use,"\033[10;10H");
-		UART_put_string(terminal_in_use, "1) Terminal");
-		/** VT100 command for positioning the cursor in x and y position*/
 		UART_put_string(terminal_in_use,"\033[11;10H");
-		UART_put_string(terminal_in_use, "2) Matriz de leds");
+		UART_put_string(terminal_in_use,"1) Ver hora en consola 	2)Ver hora en matriz      ");
+		g_OcupiedResource.RTC_ocupied = TRUE;
 	}
 	break;
 	case(READ_DATE):
 	{
 		UART_put_string(terminal_in_use, "La fecha actual es");
 		UpdateDisplayDate();
+		g_OcupiedResource.RTC_ocupied = TRUE;
 	}
 	break;
 	case(WRITE_MEMORY):
 	{
 		/** VT100 command for positioning the cursor in x and y position*/
-		UART_put_string(terminal_in_use,"\033[11;10H");
+		UART_put_string(terminal_in_use,"\033[9;10H");
 		UART_put_string(terminal_in_use, "Direccion de escritura en formato 0x0000 \r");
+		/** VT100 command for positioning the cursor in x and y position*/
+		UART_put_string(terminal_in_use,"\033[10;10H");
+		g_OcupiedResource.RAM_ocupied = TRUE;
 	}
 			break;
 	case(READ_MEMORY):
@@ -413,18 +500,35 @@ void display_default(UART_in_user_t terminal_in_use)
 		/** VT100 command for positioning the cursor in x and y position*/
 		UART_put_string(terminal_in_use,"\033[11;10H");
 		UART_put_string(terminal_in_use, "Direccion de lectura\r");
+		/** VT100 command for positioning the cursor in x and y position*/
+		UART_put_string(terminal_in_use,"\033[12;10H");
+		g_OcupiedResource.RTC_ocupied = TRUE;
 	}
 		break;
-	case(MATRIX_MESSAGE):
-	{
-		UART_put_string(terminal_in_use, "Mensajes almacenados: \r");
-	}
-	break;
+	case(CHAT):
+	    {
+	        /** VT100 command for positioning the cursor in x and y position*/
+	        UART_put_string(terminal_in_use,"\033[9;10H");
+	        UART_put_string(terminal_in_use, "Chateando con otra terminal\r");
+	        /** VT100 command for positioning the cursor in x and y position*/
+	        UART_put_string(terminal_in_use,"\033[10;10H");
+	        g_OcupiedResource.RTC_ocupied = TRUE;
+	    }
+	        break;
+//	case(MATRIX_MESSAGE):
+//	{
+//		/** VT100 command for positioning the cursor in x and y position*/
+//		UART_put_string(terminal_in_use,"\033[9;10H");
+//		UART_put_string(terminal_in_use, "Mensajes almacenados: \r");
+//		/** VT100 command for positioning the cursor in x and y position*/
+//		UART_put_string(terminal_in_use,"\033[10;10H");
+//		System_Status[MATRIX_MESSAGE]();
+//	}
+//	break;
 	default:
 		break;
 	}
-	/** VT100 command for positioning the cursor in x and y position*/
-	UART_put_string(terminal_in_use,"\033[12;10H");
+
 }
 
 void UpdateDisplayTime(void)
@@ -446,6 +550,7 @@ void UpdateDisplayTime(void)
 	UART_put_char(UART_in_use, actual_time.tens_seconds + ASCII_CONST);
 	UART_put_char(UART_in_use, actual_time.units_seconds + ASCII_CONST);
 	UART_put_string(UART_in_use, "       HRS");
+
 }
 void UpdateDisplayDate(void)
 {
@@ -469,6 +574,7 @@ void UpdateDisplayDate(void)
 	if(ESC_ASCII == data_from_user)
 	{
 		main_menu(UART_in_use);
+		g_OcupiedResource.RTC_ocupied = FALSE;
 	}
 }
 
@@ -480,12 +586,17 @@ void read_time_menu(void)
 	uint8_t data_from_user = knowTerminalData(READ_TIME);
 	/**If the last pressed key is ESC, go back to main menu*/
 	/** Select between terminal o matrix*/
-	if( FALSE == g_flag_YES)
+	if(ESC_ASCII == data_from_user)
 	{
-		if(ESC_ASCII == data_from_user)
-		{
-			main_menu(terminal_in_use);
-		}
+		main_menu(terminal_in_use);
+		g_AM_PM = FALSE;
+		g_flag_YES = FALSE;
+		g_OcupiedResource.RTC_ocupied = FALSE;
+		MATRIX_off();
+		g_counter_inputs_yes = FALSE;
+	}
+	else if( FALSE == g_flag_YES)
+	{
 		/* See the time value on terminal*/
 		if('1' == data_from_user)
 		{
@@ -531,6 +642,7 @@ void read_time_menu(void)
 		}
 		else if(ESC_ASCII == data_from_user )
 		{
+			MATRIX_off();
 			g_counter_inputs_yes = FALSE;
 			main_menu(terminal_in_use);
 		}
@@ -550,6 +662,8 @@ void write_memory(void)
 		g_writeRAM_flag.length_flag = FALSE;
 		g_writeRAM_flag.message_flag = FALSE;
 		g_writeRAM_flag.counter = FALSE;
+		flag_Error.error_writeMem =FALSE;
+		g_OcupiedResource.RAM_ocupied = FALSE;
 		main_menu(terminal_in_use);
 	}
 	else if( FALSE == g_writeRAM_flag.address_flag)
@@ -565,9 +679,9 @@ void write_memory(void)
 		else
 		{
 			/** VT100 command for positioning the cursor in x and y position*/
-			UART_put_string(terminal_in_use,"\033[13;10H");
+			UART_put_string(terminal_in_use,"\033[11;10H");
 			UART_put_string(terminal_in_use, "Longitud del mensaje: (Max 99) Ej. 06, 12, 20\r");
-			UART_put_string(terminal_in_use,"\033[14;10H");
+			UART_put_string(terminal_in_use,"\033[12;10H");
 			g_writeRAM_flag.address_flag = TRUE;
 			g_writeRAM_flag.counter = FALSE;
 		}
@@ -622,7 +736,11 @@ void write_memory(void)
 		if(ENTER_ASCII == data_from_user)
 		{
 			RAM_prepareTo(RAM_write_, g_writeRAM_Data);
-			UART_put_string(terminal_in_use, "Tu mensaje ha sido enviado\r");
+			if(flag_Error.error_writeMem != TRUE)
+			{
+				UART_put_string(terminal_in_use, "Tu mensaje ha sido enviado\r");
+			}
+
 		}
 	}
 }
@@ -635,10 +753,12 @@ void read_memory(void)
 	/** Select between terminal o matrix*/
 	if(ESC_ASCII == data_from_user)
 	{
+		g_OcupiedResource.RAM_ocupied = FALSE;
 		g_readRAM_flag.address_flag = FALSE;
 		g_readRAM_flag.length_flag = FALSE;
 		g_readRAM_flag.message_flag = FALSE;
 		g_readRAM_flag.counter = FALSE;
+		flag_Error.error_readMem = FALSE;
 		main_menu(terminal_in_use);
 	}
 	else if( FALSE == g_readRAM_flag.address_flag)
@@ -696,9 +816,10 @@ void mode_in_use(UART_in_user_t terminal_in_use)
 	UART_put_string(terminal_in_use,"\033[1;30;47m");
 	/** VT100 command for positioning the cursor in x and y position*/
 	UART_put_string(terminal_in_use,"\033[9;10H");
-	UART_put_string(terminal_in_use, "El modo ya esta en uso, selecciona otro\r");
+	UART_put_string(terminal_in_use, "El recurso ya esta en uso, selecciona otro\r");
 	/** VT100 command for positioning the cursor in x and y position*/
 	UART_put_string(terminal_in_use,"\033[10;10H");
+	delay(2000000);
 	main_menu(terminal_in_use);
 }
 
@@ -708,8 +829,13 @@ void main_menu_action(void)
 	uint8_t terminal_in_use = g_status;
 	uint8_t data_from_user = g_UART_mode[g_TERMINAL].data_from_user;
 	/** If a terminal is in use in a state whom matches the one from user, display error*/
-	if(g_UART_mode[TERMINAL0].status == data_from_user
-			|| g_UART_mode[TERMINAL4].status == data_from_user)
+	if(g_UART_mode[TERMINAL0].status == CHAT ||g_UART_mode[TERMINAL4].status == CHAT)
+	{
+		g_UART_mode[g_TERMINAL].status = data_from_user - ASCII_CONSTANT;
+		display_default(terminal_in_use);
+	}
+	else if(g_UART_mode[TERMINAL0].status == data_from_user - ASCII_CONSTANT
+			|| g_UART_mode[TERMINAL4].status == data_from_user - ASCII_CONSTANT)
 	{
 		indicate_busy = TRUE;
 	}
@@ -740,6 +866,7 @@ void system_control(UART_in_user_t terminal_in_use ,uint8_t data_from_user)
 		g_UART_mode[TERMINAL0].data_from_user = data_from_user;
 		g_TERMINAL = TERMINAL0;
 		TERMINAL = TERMINAL0;
+		g_chat_terminal= UART_0;
 	}
 	break;
 		case(UART_4):
@@ -748,6 +875,7 @@ void system_control(UART_in_user_t terminal_in_use ,uint8_t data_from_user)
 		g_UART_mode[TERMINAL4].data_from_user = data_from_user;
 		TERMINAL = TERMINAL4;
 		g_TERMINAL = TERMINAL4;
+		g_chat_terminal= UART_4;
 	}
 	break;
 	}
@@ -757,12 +885,33 @@ void system_control(UART_in_user_t terminal_in_use ,uint8_t data_from_user)
 
 void SYSTEM_I2C_fail(uint8_t mode)
 {
+
+	if(READ_TIME == mode)
+	{
+		GPIO_callback_init(GPIO_D, clear_callback);
+	}
 	uint8_t terminal_in_use = knowTerminal(mode);
+	/** Set a flag mode error to TRUE when this happens*/
+	*(p_flagError + (mode-1)) = TRUE;
 	/** VT100 command for positioning the cursor in x and y position*/
 	UART_put_string(terminal_in_use,"\033[20;10H");
 	UART_put_string(terminal_in_use, "Error de conexion\r");
 	UART_put_string(terminal_in_use,"\033[21;10H");
-	UART_put_string(terminal_in_use, "Asegura tu conexion\r");
+	UART_put_string(terminal_in_use, "Asegura tu conexion [ESC]\r");
 	/** VT100 command for positioning the cursor in x and y position*/
 	UART_put_string(terminal_in_use,"\033[9;10H");
+}
+
+void SYSTEM_printReadRam(uint8_t *data)
+{
+	if(FALSE == flag_Error.error_readMem )
+	{
+		uint8_t terminal_in_use = knowTerminal(READ_MEMORY);
+		uint8_t i = FALSE;
+		UART_put_string(terminal_in_use, data );
+		UART_put_string(terminal_in_use, "    [ESC]" );
+
+	}
+
+
 }

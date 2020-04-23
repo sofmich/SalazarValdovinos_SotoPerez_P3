@@ -12,25 +12,31 @@
 #include "I2C.h"
 #include "MCP7940.h"
 #include "system_status.h"
+#include "delay.h"
+#include "GPIO.h"
+#include "stdio.h"
 
 #define DELAY 100U
 /** Global CONSTANS to map decoder of hour digits*/
 const uint8_t decoder_time_0[] = { 0x00, 0xFE, 0x82, 0xFE}; /*Zero digit to init*/
-const uint8_t decoder_time_1[] = { 0x00, 0x00, 0xFF, 0x00 }; /*1 digit to init*/
+const uint8_t decoder_time_1[] = { 0x00, 0x00, 0xFE, 0x00 }; /*1 digit to init*/
 const uint8_t decoder_time_2[] = { 0x00, 0x9E, 0x92, 0xF2}; /*2 digit to init*/
 const uint8_t decoder_time_3[] = { 0x00, 0x92, 0x92, 0xFE }; /*3 digit to init*/
-const uint8_t decoder_time_4[] = { 0x00, 0xF0, 0x10, 0xFF }; /*4 digit to init*/
-const uint8_t decoder_time_5[] = { 0x00, 0xF9, 0x89, 0x8F }; /*5 digit to init*/
-const uint8_t decoder_time_6[] = { 0x00, 0xFE, 0x8A, 0x1E }; /*6 digit to init*/
-const uint8_t decoder_time_7[] = { 0x00, 0x80, 0x90, 0xFF }; /*7 digit to init*/
-const uint8_t decoder_time_8[] = { 0x00, 0xFE, 0x8A, 0xFE }; /*8 digit to init*/
-const uint8_t decoder_time_9[] = { 0x00, 0xF0, 0x90, 0xFF }; /*9 digit to init*/
+const uint8_t decoder_time_4[] = { 0x00, 0xF0, 0x10, 0xFE }; /*4 digit to init*/
+const uint8_t decoder_time_5[] = { 0x00, 0xF2, 0x92, 0x9E }; /*5 digit to init*/
+const uint8_t decoder_time_6[] = { 0x00, 0xFE, 0x92, 0x1E }; /*6 digit to init*/
+const uint8_t decoder_time_7[] = { 0x00, 0x80, 0x90, 0xFE }; /*7 digit to init*/
+const uint8_t decoder_time_8[] = { 0x00, 0xFE, 0x92, 0xFE }; /*8 digit to init*/
+const uint8_t decoder_time_9[] = { 0x00, 0xF0, 0x90, 0xFE }; /*9 digit to init*/
 
 /** Variable to set the actual status of error*/
 uint8_t g_Status_MATRIX = FALSE;
 
 /** Matrix useful to save values to print*/
 uint8_t g_values_to_print[MATRIX_LENGTH] = {FALSE};
+
+/** Pointer to function to execute function from system_status*/
+void (*ptr_SystemError_Matrix)(uint8_t)=SYSTEM_I2C_fail;
 
 void MATRIX_init(void)
 {
@@ -90,7 +96,8 @@ void MATRIX_show(uint8_t *matrix_cols_values)
 
 	if(TRUE == ackError )
 	{
-		SYSTEM_I2C_fail(g_Status_MATRIX);
+		ptr_SystemError_Matrix(g_Status_MATRIX);
+		I2C_stop(I2C_0);
 	}
 	else{
 		I2C_write_byte(I2C_0,MATRIX_MEM_ADDRESS);
@@ -194,34 +201,34 @@ uint8_t *MATRIX_char_to_columns(uint8_t char_data)
 	uint8_t *p_data = FALSE;
 	switch(char_data)
 	{
-	case('0'):
+	case(0):
 		p_data = decoder_time_0;
 			break;
-	case('1'):
+	case(1):
 		p_data = decoder_time_1;
 			break;
-	case('2'):
+	case(2):
 		p_data = decoder_time_2;
 				break;
-	case('3'):
+	case(3):
 		p_data = decoder_time_3;
 				break;
-	case('4'):
+	case(4):
 		p_data = decoder_time_4;
 				break;
-	case('5'):
+	case(5):
 		p_data = decoder_time_5;
 				break;
-	case('6'):
+	case(6):
 		p_data = decoder_time_6;
 				break;
-	case('7'):
+	case(7):
 		p_data = decoder_time_7;
 				break;
-	case('8'):
+	case(8):
 		p_data = decoder_time_8;
 				break;
-	case('9'):
+	case(9):
 		p_data = decoder_time_9;
 				break;
 	case 'a':
@@ -422,57 +429,33 @@ uint8_t *MATRIX_char_to_columns(uint8_t char_data)
 
 void MATRIX_show_time(void)
 {
+	uint8_t auxDot = GPIO_read_pin(GPIO_D, bit_0);
 	/** Now the time is in format cents and units for each component*/
 	time_format_t actualTime = GetGlobalTime();
 	g_Status_MATRIX = READ_TIME;
+	uint8_t *(p_valuesToPrint)[4] = {FALSE};
 	/** Values to print are saved on a matrix through the content of a pointer*/
-	g_values_to_print[0] = *(MATRIX_char_to_columns(actualTime.tens_hours));
-	g_values_to_print[4] = *(MATRIX_char_to_columns(actualTime.units_hours));
-	g_values_to_print[8] = *(MATRIX_char_to_columns(actualTime.tens_minutes));
-    g_values_to_print[12] = *(MATRIX_char_to_columns(actualTime.tens_minutes));
+	p_valuesToPrint[0] = (MATRIX_char_to_columns(actualTime.tens_hours));
+	p_valuesToPrint[1] = (MATRIX_char_to_columns(actualTime.units_hours));
+	p_valuesToPrint[2] = (MATRIX_char_to_columns(actualTime.tens_minutes));
+	p_valuesToPrint[3] = (MATRIX_char_to_columns(actualTime.units_minutes));
+
+    for(uint8_t i = 0; i<4; i++)
+    {
+    	g_values_to_print[i] 	= *(p_valuesToPrint[0]+i);
+    	g_values_to_print[i+4] 	= *(p_valuesToPrint[1]+i);
+    	g_values_to_print[i+8] 	= *(p_valuesToPrint[2]+i);
+    	g_values_to_print[i+12] = *(p_valuesToPrint[3]+i);
+    }
+
+    g_values_to_print[0] = 0x01;
     MATRIX_show(g_values_to_print);
-    delay(DELAY);
-    MATRIX_dot(ON);
-
-}
-void MATRIX_dot(dot_status_t MODE)
-{
-	/** Start sending the third byte configuration*/
-	I2C_tx_rx_mode(I2C_0, TRANSMITTER);
-	I2C_start(I2C_0);
-
-	I2C_write_byte(I2C_0,MATRIX_WRITE_ADDRESS);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
-
-	I2C_write_byte(I2C_0,FIRST_INIT_VALUE);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
-
-
-	switch(MODE)
-	{
-	case('ON'):
-	{
-		/* Write on the matrix 0 column 0, write dot*/
-		I2C_write_byte( I2C_0, 0x01);
-		I2C_wait(I2C_0);
-		I2C_get_ack(I2C_0);
-
-	}
-			break;
-	case('OFF'):
-	{
-		/* Write on the matrix 0 column 0, turn off dot*/
-		I2C_write_byte(I2C_0, 0x00);
-		I2C_wait(I2C_0);
-		I2C_get_ack(I2C_0);
-
-	}
-	break;
-	}
-
-	I2C_stop(I2C_0);
+    uint8_t auxDot_loop = auxDot;
+    do{
+    	auxDot_loop = GPIO_read_pin(GPIO_D, bit_0);
+    } while(auxDot_loop == auxDot);
+    g_values_to_print[0] = 0x00;
+	MATRIX_show(g_values_to_print);
 
 }
 
@@ -482,5 +465,4 @@ void MATRIX_off(void)
 	/** Create an array to set all leds OFF*/
 	uint8_t clean_MATRIX[16] = {FALSE};
 	MATRIX_show(clean_MATRIX);
-	MATRIX_dot(OFF);
 }

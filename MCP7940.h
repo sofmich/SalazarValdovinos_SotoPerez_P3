@@ -112,6 +112,12 @@ typedef enum{
 	YEAR
 }rtc_elements_t;
 
+typedef enum
+{
+	mode_12_hrs,
+	mode_24_hrs,
+}format_t;
+
 /********************************************************************************************/
 /*!
  	 \brief	Intialize all necessary bytes nformation and I2C protocol.
@@ -158,6 +164,12 @@ time_format_t GetGlobalTime(void);
  */
 
 date_format_t GetGlobalDate(void);
-
+/********************************************************************************************/
+/*!
+ 	 \brief	Set time to 12/24 hrs
+ 	 \param[in]  mode
+ 	 \return void
+ */
+void setFormat(format_t mode);
 
 #endif /* MCP7940_H_ */

@@ -175,6 +175,10 @@ void UART_clockGating(uart_channel_t channel)
 		PORTC->PCR[14] = PORT_PCR_MUX(3);
 		/**Configures the pin control register of pin16 in PortB as UART0 TX*/
 		PORTC->PCR[15] = PORT_PCR_MUX(3);
+		/**Configures the pin control register of pin16 in PortB as UART0 RX*/
+	//	PORTE->PCR[24] = PORT_PCR_MUX(3);
+		/**Configures the pin control register of pin16 in PortB as UART0 TX*/
+	//	PORTE->PCR[25] = PORT_PCR_MUX(3);
 		break;
 	case UART_5:
 		SIM->SCGC1 |= SIM_SCGC1_UART5_MASK;
@@ -311,7 +315,6 @@ void UART0_RX_TX_IRQHandler(void)
 
 }
 
-
 void UART1_RX_TX_IRQHandler(void)
 {
 	if((UART1->S1 & UART_S1_RDRF_MASK)){
@@ -378,3 +381,4 @@ uint8_t UART_get_mailbox(uart_channel_t channel)
 	return  g_mail_box_uart[channel].mailBox;
 
 }
+

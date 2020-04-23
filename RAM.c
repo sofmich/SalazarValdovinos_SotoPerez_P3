@@ -11,12 +11,16 @@
 #include "RAM.h"
 #include "delay.h"
 #include "stdio.h"
+#include "system_status.h"
 
-#define DELAY_RAM 800U
+#define DELAY_RAM 10000U
 
 /** String whom will be returned as a red memory*/
 uint8_t g_read_string[] = {FALSE};
-
+/** Pointer to function to execute function from system_status*/
+void (*ptr_SystemError)(uint8_t)=SYSTEM_I2C_fail;
+/** Pointer to function to execute function from system_status*/
+void (*ptr_PrintData)(uint8_t *)= SYSTEM_printReadRam;
 
 /*baud rate of 115200 KBPS 400K**/
 static const i2c_baud_rate_t I2C_RAM_baud_rate = {2, 3};
@@ -26,7 +30,7 @@ static const i2c_config_struct_t RAM_config =
 		I2C_0, /** Channel*/
 		21000000, /** System clock*/
 		I2C_RAM_baud_rate.mult, /** Multiplier*/
-		I2C_RAM_baud_rate.icr, /** Multiplier*/
+		I2C_RAM_baud_rate.icr, /** clock rate*/
 };
 
 void RAM_init(void)
@@ -49,7 +53,7 @@ void RAM_write_sequential(uint8_t ram_low, uint8_t ram_high , uint8_t* data)
 	/** Show error message when acknowledge is TRUE*/
 	if(TRUE == ackError)
 	{
-		SYSTEM_I2C_fail(RAM_write_);
+		ptr_SystemError(RAM_write_);
 	}
 	else{
 		I2C_write_byte(I2C_0, ram_high);
@@ -81,7 +85,6 @@ void RAM_write_byte(uint16_t Address, uint8_t* data)
 	uint8_t ram_high = Address >> HIGH_SHIFT;
 	ram_high &= LOW_MASK;
 
-	printf("\nESCRITURA LOW 0x%x HIGH 0x%x DATA %c", ram_low, ram_high, *data);
 
 	I2C_start(I2C_0);
 	/**Start comunicating with memory to write*/
@@ -92,7 +95,9 @@ void RAM_write_byte(uint16_t Address, uint8_t* data)
 	/** Show error message when acknowledge is TRUE*/
 	if(TRUE == ackError)
 	{
-		SYSTEM_I2C_fail(RAM_write_);
+		ptr_SystemError(RAM_write_);
+		/** Set a stop bit indicating writing is finally finished*/
+		I2C_stop(I2C_0);
 	}
 	else{
 		I2C_write_byte(I2C_0, ram_high);
@@ -131,7 +136,8 @@ uint8_t RAM_read_byte(uint16_t Address)
 	/** Show error message when acknowledge is TRUE*/
 	if(TRUE == ackError)
 	{
-		SYSTEM_I2C_fail(RAM_write_);
+		ptr_SystemError(RAM_read);
+		I2C_stop(I2C_0);
 	}
 	else
 	{
@@ -188,7 +194,7 @@ void RAM_prepareTo(uint8_t mode, RAM_Data_t write_data)
 	}
 
 
-
+	/** Shift values to make a total address*/
 	Address = (write_data.address[2] << 12 | write_data.address[3] << 8 )
 			| (write_data.address[4] << 4 | write_data.address[5]);
 	/** From the array it comes on [cents][tens][units] three digits*/
@@ -199,8 +205,10 @@ void RAM_prepareTo(uint8_t mode, RAM_Data_t write_data)
 	{
 	case(RAM_write_):
 	{
+		/**Write untill the length is reached*/
 		for(uint8_t i =0; i < length; i++)
 		{
+			delay(DELAY_RAM);
 			/** And now we should just care to write the message */
 			RAM_write_byte(Address, &(write_data.message[i]));
 			delay(DELAY_RAM);
@@ -210,14 +218,23 @@ void RAM_prepareTo(uint8_t mode, RAM_Data_t write_data)
 	break;
 	case(RAM_read):
 	{
-
-		uint8_t data = FALSE;
+		/**Lectures are limitated*/
+		uint8_t data[100] = {FALSE};
+		uint8_t sent = FALSE;
 		for(uint8_t i =0; i < length ; i++)
 		{
-			data = RAM_read_byte(Address);
-			delay(DELAY_RAM);
-			printf("\n%c", data);
+			data[i] = RAM_read_byte(Address);
+			if(TRASH_Y == data[i])
+			{   /**Significa que llegó al final de la lectura*/
+				ptr_PrintData(data);
+				sent = TRUE;
+				break;
+			}
 			Address++;
+		}
+		if(FALSE == sent)
+		{
+			ptr_PrintData(data);
 		}
 
 	}
@@ -226,4 +243,102 @@ void RAM_prepareTo(uint8_t mode, RAM_Data_t write_data)
 		break;
 	}
 }
+
+first_messages_t readFirstMessages(void)
+{
+	first_messages_t messages = {FALSE};
+	uint16_t address = 0x0000;
+	uint8_t * text[3] = {FALSE};
+	uint16_t offset = FALSE;
+	uint8_t flag_trash = FALSE;
+	uint8_t data = FALSE;
+	while(FALSE == flag_trash)
+	{
+		/* Keep looking for a string*/
+		data = RAM_read_byte(address);
+		if((data < 32 || data > 128))
+		{
+			flag_trash = TRUE;
+		}
+		else
+		{
+			if(offset < 50)
+			{
+				messages.p_message1[offset] = data;
+				printf("%c", messages.p_message1[offset]);
+			}
+			offset ++ ;
+		}
+		address ++;
+	}
+	do
+	{
+		/**Wastetime*/
+		data = RAM_read_byte(address);
+		address ++ ;
+	}while((data < 32 || data > 128) );
+	flag_trash = FALSE;
+	offset = FALSE;
+	printf("\n");
+	address = address - 1;
+	while(FALSE == flag_trash)
+	{
+		/* Keep looking for a string*/
+		data = RAM_read_byte(address);
+		if((data < 32 || data > 128))
+		{
+			flag_trash = TRUE;
+		}
+		else
+		{
+			if(offset < 50)
+			{
+				messages.p_message2[offset] = data;
+				printf("%c", messages.p_message2[offset]);
+			}
+			offset ++ ;
+		}
+		address ++;
+	}
+
+	do
+	{
+		/**Wastetime*/
+		data = RAM_read_byte(address);
+		address ++ ;
+	}while((data < 32 || data > 128) );
+
+	flag_trash = FALSE;
+		offset = FALSE;
+		printf("\n");
+		address = address - 1;
+		while(FALSE == flag_trash)
+		{
+			/* Keep looking for a string*/
+			data = RAM_read_byte(address);
+			if((data < 32 || data > 128))
+			{
+				flag_trash = TRUE;
+			}
+			else
+			{
+				if(offset < 50)
+				{
+					messages.p_message3[offset] = data;
+					printf("%c", messages.p_message3[offset]);
+				}
+				offset ++ ;
+			}
+			address ++;
+		}
+
+
+	printf("\n %s \n", messages.p_message1);
+	printf("\n %s \n", messages.p_message2);
+	printf("\n %s \n", messages.p_message3);
+
+	return messages;
+}
+
+
 

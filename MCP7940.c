@@ -21,6 +21,9 @@
 
 uint8_t g_Status_RTC = FALSE;
 
+/** Pointer to function to execute function from system_status*/
+void (*ptr_SystemError_RTC)(uint8_t)=SYSTEM_I2C_fail;
+
 /** Configuration for I2C baud rate*/
 const i2c_baud_rate_t RTC_baud_rate = {2, 1 };
 
@@ -74,7 +77,8 @@ void RTC_write_byte(uint8_t address, uint8_t data)
 
 	if(TRUE == ackError)
 	{
-		SYSTEM_I2C_fail(g_Status_RTC);
+		ptr_SystemError_RTC(g_Status_RTC);
+		I2C_stop(I2C_0);
 	}
 	else{
 
@@ -93,33 +97,41 @@ void RTC_write_byte(uint8_t address, uint8_t data)
 uint8_t RTC_read_byte(uint8_t address)
 {
 	uint8_t data;
+	uint8_t ackError = FALSE;
+
 	I2C_tx_rx_mode(I2C_0,TRANSMITTER);
 	I2C_start(I2C_0);
 
 	I2C_write_byte(I2C_0,AD_WRITE);
 	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+	ackError = I2C_get_ack(I2C_0);
+	if(TRUE == ackError)
+	{
+		ptr_SystemError_RTC(g_Status_RTC);
+		I2C_stop(I2C_0);
+	}
+	else{
+		I2C_write_byte(I2C_0,address);
+		I2C_wait(I2C_0);
+		I2C_get_ack(I2C_0);
 
-	I2C_write_byte(I2C_0,address);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+		I2C_repeted_start(I2C_0);
+		I2C_write_byte(I2C_0,AD_READ);
+		I2C_wait(I2C_0);
+		I2C_get_ack(I2C_0);
 
-	I2C_repeted_start(I2C_0);
-	I2C_write_byte(I2C_0,AD_READ);
-	I2C_wait(I2C_0);
-	I2C_get_ack(I2C_0);
+		I2C_tx_rx_mode(I2C_0,RECEIVER);
 
-	I2C_tx_rx_mode(I2C_0,RECEIVER);
+		I2C_nack(I2C_0);
+		data = I2C_read_byte(I2C_0);
+		I2C_wait(I2C_0);
+		I2C_nack(I2C_0);
 
-	I2C_nack(I2C_0);
-	data = I2C_read_byte(I2C_0);
-	I2C_wait(I2C_0);
-	I2C_nack(I2C_0);
+		I2C_stop(I2C_0);
+		data = I2C_read_byte(I2C_0);
 
-	I2C_stop(I2C_0);
-	data = I2C_read_byte(I2C_0);
-
-	return data;
+		return data;
+	}
 }
 
 
@@ -203,12 +215,6 @@ time_format_t GetGlobalTime(void)
 	/** Get seconds units*/
 	actual_time.units_seconds = temp_time & UNITS_MASK;
 
-	printf("Actual time \n %d%d : %d%d: %d%d AM O PM %d\n",
-			actual_time.tens_hours, actual_time.units_hours,
-			actual_time.tens_minutes, actual_time.units_minutes,
-			actual_time.tens_seconds, actual_time.units_seconds,
-			actual_time.am_pm);
-
 	return actual_time;
 }
 
@@ -220,8 +226,6 @@ date_format_t GetGlobalDate(void){
 	date_format[0] = RTC_read_byte(YEARS_ADDRESS);
 	date_format[1] = RTC_read_byte(MONTHS_ADDRESS);
 	date_format[2] = RTC_read_byte(DAYS_ADDRESS);
-	printf("++++++++++ Actual date\n %x / %x / %x \n",
-			date_format[2], date_format[1], date_format[0]);
 
 	/** Adjust tens and units of each digit*/
 	actual_date.tens_years = (date_format[0] & YEARS_CENTS_MASK) >> CENTS_SHIFTER;
@@ -232,7 +236,21 @@ date_format_t GetGlobalDate(void){
 	/* Adjust tens and units of days*/
 	actual_date.tens_days = (date_format[2] & DAYS_CENTS_MASK) >>  CENTS_SHIFTER;
 	actual_date.units_days = (date_format[2] & UNITS_MASK);
-
 	return actual_date;
+}
 
+void setFormat(format_t mode)
+{
+	uint8_t set_12_24 = RTC_read_byte(YEARS_ADDRESS);
+	switch(mode)
+	{
+	case(mode_12_hrs):
+		set_12_24 |= (TRUE << bit_6);
+			break;
+	case(mode_24_hrs):
+			set_12_24 |= (FALSE << bit_6);
+	break;
+	}
+	RTC_write_byte(HOUR, set_12_24);
+	delay(DELAY);
 }
