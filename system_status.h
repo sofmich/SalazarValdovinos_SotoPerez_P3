@@ -75,6 +75,11 @@ typedef struct{
 	uint8_t length_flag;
 	uint8_t message_flag;
 }memoryStagesFlag_t;
+/** Structure to control RAM flow*/
+typedef struct{
+	uint8_t RTC_ocupied:1;
+	uint8_t RAM_ocupied:1;
+}resources_t;
 
 /** Structure of each terminal status and data*/
 typedef struct

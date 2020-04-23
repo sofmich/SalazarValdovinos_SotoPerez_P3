@@ -13,7 +13,7 @@
 #include "stdio.h"
 #include "system_status.h"
 
-#define DELAY_RAM 800U
+#define DELAY_RAM 10000U
 
 /** String whom will be returned as a red memory*/
 uint8_t g_read_string[] = {FALSE};
@@ -208,6 +208,7 @@ void RAM_prepareTo(uint8_t mode, RAM_Data_t write_data)
 		/**Write untill the length is reached*/
 		for(uint8_t i =0; i < length; i++)
 		{
+			delay(DELAY_RAM);
 			/** And now we should just care to write the message */
 			RAM_write_byte(Address, &(write_data.message[i]));
 			delay(DELAY_RAM);

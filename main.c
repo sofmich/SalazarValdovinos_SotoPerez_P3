@@ -39,12 +39,14 @@ int main(void)
 			data_from_user = UART_get_mailbox(UART_0);
 			system_control(UART_0, data_from_user);
 		}
-//		else if(TRUE == UART_get_interrupt_flag(UART_4))
-//		{
-//			UART_clear_interrupt_flag(UART_4);
-//			data_from_user = UART_get_mailbox(UART_4);
-//			system_control(UART_4, data_from_user);
-//		}
+		
+		else if(TRUE == UART_get_interrupt_flag(UART_4))
+		{
+			UART_clear_interrupt_flag(UART_4);
+			data_from_user = UART_get_mailbox(UART_4);
+			system_control(UART_4, data_from_user);
+		}
+
 
 	}
 
